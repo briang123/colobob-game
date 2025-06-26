@@ -3,29 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Space Prison Escape</title>
+    <title>Space Prison Escape - 3D</title>
     <style>
       body {
         margin: 0;
         padding: 0;
         background: #0a0a0a;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
         font-family: 'Courier New', monospace;
         color: #00ffff;
-      }
-
-      #gameContainer {
-        position: relative;
-        border: 2px solid #00ffff;
-        box-shadow: 0 0 20px #00ffff;
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
       }
 
       #gameCanvas {
         display: block;
         background: #1a1a2e;
+        cursor: crosshair;
+        width: 100vw;
+        height: 100vh;
       }
 
       #ui {
@@ -35,6 +31,10 @@
         color: #00ffff;
         font-size: 14px;
         text-shadow: 0 0 5px #00ffff;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 5px;
       }
 
       #controls {
@@ -46,26 +46,87 @@
         background: rgba(0, 0, 0, 0.7);
         padding: 10px;
         border-radius: 5px;
+        z-index: 100;
+      }
+
+      #crosshair {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
+        z-index: 50;
+      }
+
+      #crosshair::before,
+      #crosshair::after {
+        content: '';
+        position: absolute;
+        background: #00ffff;
+        box-shadow: 0 0 5px #00ffff;
+      }
+
+      #crosshair::before {
+        width: 2px;
+        height: 20px;
+        left: 9px;
+        top: 0;
+      }
+
+      #crosshair::after {
+        width: 20px;
+        height: 2px;
+        left: 0;
+        top: 9px;
+      }
+
+      #fullscreenButton {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #00ffff;
+        border: 1px solid #00ffff;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'Courier New', monospace;
+        z-index: 100;
+      }
+
+      #fullscreenButton:hover {
+        background: rgba(0, 255, 255, 0.2);
       }
     </style>
   </head>
   <body>
-    <div id="gameContainer">
-      <canvas id="gameCanvas" width="1200" height="800"></canvas>
-      <div id="ui">
-        <div>Health: <span id="health">100</span></div>
-        <div>Gravity: <span id="gravity">ON</span></div>
-        <div>Position: <span id="position">0, 0</span></div>
-      </div>
-      <div id="controls">
-        <strong>Controls:</strong><br />
-        WASD - Move<br />
-        SPACE - Jump<br />
-        E - Interact<br />
-        G - Toggle Gravity (when found)
-      </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="crosshair"></div>
+    <div id="ui">
+      <div>Health: <span id="health">100</span></div>
+      <div>Gravity: <span id="gravity">ON</span></div>
+      <div>Light Mode: <span id="lightMode">LIGHT</span></div>
+      <div>Position: <span id="position">0, 0, 0</span></div>
+      <div>FPS: <span id="fps">60</span></div>
     </div>
+    <div id="controls">
+      <strong>First-Person Controls:</strong><br />
+      WASD - Move (relative to where you're looking)<br />
+      MOUSE - Look around<br />
+      SPACE - Jump<br />
+      E - Interact<br />
+      G - Toggle Gravity (when found)<br />
+      L - Toggle Light/Dark Mode<br />
+      F - Toggle fullscreen<br />
+      ESC - Toggle mouse lock<br />
+      <br />
+      <em>Click to lock mouse for full first-person control</em>
+    </div>
+    <button id="fullscreenButton">Fullscreen</button>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="js/game.js"></script>
   </body>
 </html>

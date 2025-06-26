@@ -1,31 +1,82 @@
-// Space Prison Escape Game
-class Game {
+// Space Prison Escape 3D Game
+class Game3D {
   constructor() {
+    console.log('Initializing 3D Game...');
+    this.showLoadingScreen('Initializing 3D Game...');
+
+    // Check if Three.js is available
+    if (typeof THREE === 'undefined') {
+      console.error('Three.js not loaded! Please check the CDN link.');
+      this.showError('Three.js library not loaded. Please refresh the page.');
+      return;
+    }
+
     this.canvas = document.getElementById('gameCanvas');
-    this.ctx = this.canvas.getContext('2d');
+    if (!this.canvas) {
+      console.error('Canvas element not found!');
+      this.showError('Game canvas not found.');
+      return;
+    }
+
+    // Set canvas to full window size
+    this.resizeCanvas();
+
+    // Listen for window resize events
+    window.addEventListener('resize', () => this.resizeCanvas());
+
     this.width = this.canvas.width;
     this.height = this.canvas.height;
+    console.log(`Canvas size: ${this.width}x${this.height}`);
+
+    try {
+      // Three.js setup
+      this.scene = new THREE.Scene();
+      this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000);
+      this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+      this.renderer.setSize(this.width, this.height);
+      this.renderer.setClearColor(0x1a1a2e);
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      console.log('Three.js setup complete');
+      this.updateLoadingScreen('Creating 3D world...');
+    } catch (error) {
+      console.error('Error setting up Three.js:', error);
+      this.showError('Failed to initialize 3D graphics. Please check your browser supports WebGL.');
+      return;
+    }
 
     // Game state
     this.gravity = 0.3;
     this.gravityEnabled = true;
     this.gameTime = 0;
+    this.fps = 60;
+    this.lastTime = 0;
+    this.lightMode = 'light'; // 'light' or 'dark'
+
+    // Mouse controls
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.mouseLocked = false;
+    this.mouseSensitivity = 0.002;
 
     // Player
     this.player = {
-      x: 100,
-      y: 400,
-      width: 30,
-      height: 50,
+      mesh: null,
+      x: 0,
+      y: 2,
+      z: 0,
       vx: 0,
       vy: 0,
-      speed: 5,
-      jumpPower: 12,
+      vz: 0,
+      speed: 0.15,
+      jumpPower: 0.8,
       onGround: false,
       health: 100,
       maxHealth: 100,
-      shape: 'human', // human, small, wide, tall
-      color: '#ff6b35',
+      height: 2,
+      radius: 0.5,
+      color: 0xff6b35,
     };
 
     // Input handling
@@ -37,12 +88,96 @@ class Game {
     this.enemies = [];
     this.items = [];
     this.particles = [];
+    this.lights = [];
 
-    // Initialize game world
-    this.initWorld();
+    // Initialize 3D world
+    this.init3DWorld();
 
     // Start game loop
     this.gameLoop();
+
+    console.log('3D Game initialization complete!');
+    this.hideLoadingScreen();
+  }
+
+  resizeCanvas() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+
+    if (this.camera && this.renderer) {
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+  }
+
+  showLoadingScreen(message) {
+    this.loadingDiv = document.createElement('div');
+    this.loadingDiv.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a0a;
+      color: #00ffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Courier New', monospace;
+      z-index: 1000;
+    `;
+    this.loadingDiv.innerHTML = `
+      <h2>Space Prison Escape 3D</h2>
+      <p>${message}</p>
+      <div style="margin-top: 20px; width: 200px; height: 4px; background: #2a2a3e; border-radius: 2px;">
+        <div id="loadingBar" style="width: 0%; height: 100%; background: #00ffff; border-radius: 2px; transition: width 0.3s;"></div>
+      </div>
+    `;
+    document.body.appendChild(this.loadingDiv);
+  }
+
+  updateLoadingScreen(message, progress = 0) {
+    if (this.loadingDiv) {
+      const textElement = this.loadingDiv.querySelector('p');
+      const barElement = this.loadingDiv.querySelector('#loadingBar');
+      if (textElement) textElement.textContent = message;
+      if (barElement) barElement.style.width = `${progress}%`;
+    }
+  }
+
+  hideLoadingScreen() {
+    if (this.loadingDiv) {
+      this.loadingDiv.remove();
+      this.loadingDiv = null;
+    }
+  }
+
+  showError(message) {
+    this.hideLoadingScreen();
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      z-index: 1000;
+      text-align: center;
+      max-width: 400px;
+    `;
+    errorDiv.innerHTML = `
+      <h3>Game Error</h3>
+      <p>${message}</p>
+      <p>Please refresh the page or check your browser console for details.</p>
+      <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #fff; color: #000; border: none; border-radius: 5px; cursor: pointer;">Refresh Page</button>
+    `;
+    document.body.appendChild(errorDiv);
   }
 
   setupInput() {
@@ -60,82 +195,354 @@ class Game {
       if (e.key === 'e' || e.key === 'E') {
         this.interact();
       }
+      if (e.key === 'Escape') {
+        this.toggleMouseLock();
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        this.toggleFullscreen();
+      }
+      if (e.key === 'l' || e.key === 'L') {
+        this.toggleLightMode();
+      }
     });
 
     document.addEventListener('keyup', (e) => {
       this.keys[e.key.toLowerCase()] = false;
     });
+
+    // Mouse movement
+    document.addEventListener('mousemove', (e) => {
+      if (this.mouseLocked) {
+        this.mouseX -= e.movementX * this.mouseSensitivity;
+        this.mouseY -= e.movementY * this.mouseSensitivity;
+
+        // Limit vertical rotation
+        this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
+      }
+    });
+
+    // Mouse lock
+    this.canvas.addEventListener('click', () => {
+      if (!this.mouseLocked) {
+        this.canvas.requestPointerLock();
+      }
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      this.mouseLocked = document.pointerLockElement === this.canvas;
+    });
+
+    // Fullscreen button
+    const fullscreenButton = document.getElementById('fullscreenButton');
+    if (fullscreenButton) {
+      fullscreenButton.addEventListener('click', () => {
+        this.toggleFullscreen();
+      });
+    }
   }
 
-  initWorld() {
-    // Create platforms (prison structure)
-    this.platforms = [
-      // Floor
-      { x: 0, y: 750, width: 1200, height: 50, color: '#2a2a3e' },
+  toggleMouseLock() {
+    if (this.mouseLocked) {
+      document.exitPointerLock();
+    } else {
+      this.canvas.requestPointerLock();
+    }
+  }
 
-      // Cell platforms
-      { x: 50, y: 650, width: 200, height: 20, color: '#3a3a4e' },
-      { x: 300, y: 650, width: 200, height: 20, color: '#3a3a4e' },
-      { x: 550, y: 650, width: 200, height: 20, color: '#3a3a4e' },
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      // Enter fullscreen
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      } else if (document.documentElement.msRequestFullscreen) {
+        document.documentElement.msRequestFullscreen();
+      }
+    } else {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+    }
+  }
 
-      // Upper platforms
-      { x: 100, y: 500, width: 150, height: 20, color: '#4a4a4e' },
-      { x: 400, y: 500, width: 150, height: 20, color: '#4a4a4e' },
-      { x: 700, y: 500, width: 150, height: 20, color: '#4a4a4e' },
+  init3DWorld() {
+    // Lighting
+    this.updateLoadingScreen('Setting up lighting...', 20);
+    this.setupLighting();
 
-      // High platforms
-      { x: 200, y: 350, width: 100, height: 20, color: '#5a5a6e' },
-      { x: 500, y: 350, width: 100, height: 20, color: '#5a5a6e' },
-      { x: 800, y: 350, width: 100, height: 20, color: '#5a5a6e' },
+    // Create floor
+    this.updateLoadingScreen('Creating floor...', 30);
+    this.createFloor();
 
-      // Walls
-      { x: 0, y: 0, width: 20, height: 800, color: '#2a2a3e' },
-      { x: 1180, y: 0, width: 20, height: 800, color: '#2a2a3e' },
+    // Create platforms
+    this.updateLoadingScreen('Creating platforms...', 40);
+    this.createPlatforms();
+
+    // Create walls
+    this.updateLoadingScreen('Creating walls...', 50);
+    this.createWalls();
+
+    // Create player
+    this.updateLoadingScreen('Creating player...', 60);
+    this.createPlayer();
+
+    // Create enemies
+    this.updateLoadingScreen('Creating enemies...', 70);
+    this.createEnemies();
+
+    // Create items
+    this.updateLoadingScreen('Creating items...', 80);
+    this.createItems();
+
+    // Position camera
+    this.updateLoadingScreen('Setting up camera...', 90);
+    this.camera.position.set(0, 3, 5);
+    this.camera.lookAt(0, 2, 0);
+
+    this.updateLoadingScreen('Game ready!', 100);
+  }
+
+  setupLighting() {
+    // Clear existing lights
+    this.lights.forEach((light) => {
+      this.scene.remove(light);
+    });
+    this.lights = [];
+
+    if (this.lightMode === 'light') {
+      // Daylight lighting - warm and bright
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      this.scene.add(ambientLight);
+      this.lights.push(ambientLight);
+
+      // Main sunlight from above
+      const directionalLight = new THREE.DirectionalLight(0xfff4e6, 1.2);
+      directionalLight.position.set(0, 20, 0);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      directionalLight.shadow.camera.near = 0.5;
+      directionalLight.shadow.camera.far = 50;
+      directionalLight.shadow.camera.left = -20;
+      directionalLight.shadow.camera.right = 20;
+      directionalLight.shadow.camera.top = 20;
+      directionalLight.shadow.camera.bottom = -20;
+      this.scene.add(directionalLight);
+      this.lights.push(directionalLight);
+
+      // Additional warm fill light
+      const fillLight = new THREE.DirectionalLight(0xffe6cc, 0.4);
+      fillLight.position.set(10, 15, 10);
+      this.scene.add(fillLight);
+      this.lights.push(fillLight);
+
+      // Set renderer background to sky blue
+      this.renderer.setClearColor(0x87ceeb);
+    } else {
+      // Dark mode with neon blue lights at the top
+      const ambientLight = new THREE.AmbientLight(0x101020, 0.2);
+      this.scene.add(ambientLight);
+      this.lights.push(ambientLight);
+
+      // Dim main light for basic visibility
+      const directionalLight = new THREE.DirectionalLight(0x202040, 0.3);
+      directionalLight.position.set(5, 10, 5);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      directionalLight.shadow.camera.near = 0.5;
+      directionalLight.shadow.camera.far = 50;
+      directionalLight.shadow.camera.left = -20;
+      directionalLight.shadow.camera.right = 20;
+      directionalLight.shadow.camera.top = 20;
+      directionalLight.shadow.camera.bottom = -20;
+      this.scene.add(directionalLight);
+      this.lights.push(directionalLight);
+
+      // Neon blue lights at the top of the prison
+      const neonLight1 = new THREE.PointLight(0x00ffff, 0.8, 25);
+      neonLight1.position.set(-15, 15, -15);
+      this.scene.add(neonLight1);
+      this.lights.push(neonLight1);
+
+      const neonLight2 = new THREE.PointLight(0x00ffff, 0.8, 25);
+      neonLight2.position.set(15, 15, -15);
+      this.scene.add(neonLight2);
+      this.lights.push(neonLight2);
+
+      const neonLight3 = new THREE.PointLight(0x00ffff, 0.8, 25);
+      neonLight3.position.set(-15, 15, 15);
+      this.scene.add(neonLight3);
+      this.lights.push(neonLight3);
+
+      const neonLight4 = new THREE.PointLight(0x00ffff, 0.8, 25);
+      neonLight4.position.set(15, 15, 15);
+      this.scene.add(neonLight4);
+      this.lights.push(neonLight4);
+
+      // Additional atmospheric blue lights
+      const atmosphericLight1 = new THREE.PointLight(0x0066ff, 0.6, 20);
+      atmosphericLight1.position.set(0, 12, 0);
+      this.scene.add(atmosphericLight1);
+      this.lights.push(atmosphericLight1);
+
+      const atmosphericLight2 = new THREE.PointLight(0x0066ff, 0.6, 20);
+      atmosphericLight2.position.set(0, 8, 0);
+      this.scene.add(atmosphericLight2);
+      this.lights.push(atmosphericLight2);
+
+      // Set renderer background to deep space black
+      this.renderer.setClearColor(0x000011);
+    }
+  }
+
+  createFloor() {
+    const floorGeometry = new THREE.PlaneGeometry(40, 40);
+    const floorMaterial = new THREE.MeshLambertMaterial({
+      color: 0x2a2a3e,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    this.scene.add(floor);
+  }
+
+  createPlatforms() {
+    const platformData = [
+      { x: -8, y: 1, z: -8, width: 4, height: 0.5, depth: 4 },
+      { x: 0, y: 1, z: -8, width: 4, height: 0.5, depth: 4 },
+      { x: 8, y: 1, z: -8, width: 4, height: 0.5, depth: 4 },
+      { x: -8, y: 3, z: 0, width: 4, height: 0.5, depth: 4 },
+      { x: 0, y: 3, z: 0, width: 4, height: 0.5, depth: 4 },
+      { x: 8, y: 3, z: 0, width: 4, height: 0.5, depth: 4 },
+      { x: -4, y: 5, z: 8, width: 3, height: 0.5, depth: 3 },
+      { x: 4, y: 5, z: 8, width: 3, height: 0.5, depth: 3 },
     ];
 
-    // Create enemies (blue aliens)
-    this.enemies = [
-      {
-        x: 350,
-        y: 630,
-        width: 25,
-        height: 40,
-        vx: 1,
-        patrolLeft: 300,
-        patrolRight: 500,
-        type: 'guard',
-        color: '#0066ff',
-      },
-      {
-        x: 600,
-        y: 630,
-        width: 25,
-        height: 40,
-        vx: -1,
-        patrolLeft: 550,
-        patrolRight: 750,
-        type: 'guard',
-        color: '#0066ff',
-      },
-      {
-        x: 150,
-        y: 480,
-        width: 25,
-        height: 40,
-        vx: 0.5,
-        patrolLeft: 100,
-        patrolRight: 250,
-        type: 'guard',
-        color: '#0066ff',
-      },
+    platformData.forEach((data) => {
+      const geometry = new THREE.BoxGeometry(data.width, data.height, data.depth);
+      const material = new THREE.MeshLambertMaterial({ color: 0x3a3a4e });
+      const platform = new THREE.Mesh(geometry, material);
+      platform.position.set(data.x, data.y, data.z);
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      this.scene.add(platform);
+
+      this.platforms.push({
+        mesh: platform,
+        x: data.x,
+        y: data.y,
+        z: data.z,
+        width: data.width,
+        height: data.height,
+        depth: data.depth,
+      });
+    });
+  }
+
+  createWalls() {
+    const wallData = [
+      { x: -20, y: 5, z: 0, width: 1, height: 10, depth: 40 },
+      { x: 20, y: 5, z: 0, width: 1, height: 10, depth: 40 },
+      { x: 0, y: 5, z: -20, width: 40, height: 10, depth: 1 },
+      { x: 0, y: 5, z: 20, width: 40, height: 10, depth: 1 },
     ];
 
-    // Create items (resources)
-    this.items = [
-      { x: 150, y: 620, width: 20, height: 20, type: 'health', color: '#00ff00' },
-      { x: 450, y: 620, width: 20, height: 20, type: 'gravitySwitch', color: '#ffff00' },
-      { x: 750, y: 620, width: 20, height: 20, type: 'weapon', color: '#ff0000' },
+    wallData.forEach((data) => {
+      const geometry = new THREE.BoxGeometry(data.width, data.height, data.depth);
+      const material = new THREE.MeshLambertMaterial({ color: 0x2a2a3e });
+      const wall = new THREE.Mesh(geometry, material);
+      wall.position.set(data.x, data.y, data.z);
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      this.scene.add(wall);
+    });
+  }
+
+  createPlayer() {
+    // Use CylinderGeometry instead of CapsuleGeometry for compatibility
+    const geometry = new THREE.CylinderGeometry(
+      this.player.radius,
+      this.player.radius,
+      this.player.height,
+      8,
+    );
+    const material = new THREE.MeshLambertMaterial({ color: this.player.color });
+    this.player.mesh = new THREE.Mesh(geometry, material);
+    this.player.mesh.position.set(this.player.x, this.player.y, this.player.z);
+    this.player.mesh.castShadow = true;
+    this.player.mesh.visible = false; // Hide player mesh in first-person view
+    this.scene.add(this.player.mesh);
+  }
+
+  createEnemies() {
+    const enemyData = [
+      { x: -6, y: 1.5, z: -6, patrolLeft: -8, patrolRight: -4, vx: 0.02 },
+      { x: 6, y: 1.5, z: -6, patrolLeft: 4, patrolRight: 8, vx: -0.02 },
+      { x: -6, y: 3.5, z: 2, patrolLeft: -8, patrolRight: -4, vx: 0.015 },
     ];
+
+    enemyData.forEach((data) => {
+      // Use CylinderGeometry instead of CapsuleGeometry for compatibility
+      const geometry = new THREE.CylinderGeometry(0.4, 0.4, 1.2, 8);
+      const material = new THREE.MeshLambertMaterial({ color: 0x0066ff });
+      const enemy = new THREE.Mesh(geometry, material);
+      enemy.position.set(data.x, data.y, data.z);
+      enemy.castShadow = true;
+      this.scene.add(enemy);
+
+      this.enemies.push({
+        mesh: enemy,
+        x: data.x,
+        y: data.y,
+        z: data.z,
+        vx: data.vx,
+        patrolLeft: data.patrolLeft,
+        patrolRight: data.patrolRight,
+        type: 'guard',
+        radius: 0.4,
+        height: 2,
+      });
+    });
+  }
+
+  createItems() {
+    const itemData = [
+      { x: -6, y: 1.5, z: -6, type: 'health', color: 0x00ff00 },
+      { x: 6, y: 1.5, z: -6, type: 'gravitySwitch', color: 0xffff00 },
+      { x: 0, y: 3.5, z: 2, type: 'weapon', color: 0xff0000 },
+    ];
+
+    itemData.forEach((data) => {
+      const geometry = new THREE.SphereGeometry(0.3);
+      const material = new THREE.MeshLambertMaterial({
+        color: data.color,
+        emissive: data.color,
+        emissiveIntensity: 0.3,
+      });
+      const item = new THREE.Mesh(geometry, material);
+      item.position.set(data.x, data.y, data.z);
+      item.castShadow = true;
+      this.scene.add(item);
+
+      this.items.push({
+        mesh: item,
+        x: data.x,
+        y: data.y,
+        z: data.z,
+        type: data.type,
+        radius: 0.3,
+        collected: false,
+      });
+    });
   }
 
   update() {
@@ -153,312 +560,335 @@ class Game {
     // Check collisions
     this.checkCollisions();
 
+    // Update camera
+    this.updateCamera();
+
     // Update UI
     this.updateUI();
   }
 
   updatePlayer() {
-    // Handle horizontal movement
-    if (this.keys['a'] || this.keys['arrowleft']) {
-      this.player.vx = -this.player.speed;
-    } else if (this.keys['d'] || this.keys['arrowright']) {
-      this.player.vx = this.player.speed;
-    } else {
-      this.player.vx *= 0.8; // Friction
+    // First-person movement relative to where player is looking
+    let moveX = 0;
+    let moveZ = 0;
+
+    if (this.keys['w']) {
+      // Move forward in the direction player is looking
+      moveX += Math.sin(this.mouseX);
+      moveZ += Math.cos(this.mouseX);
+    }
+    if (this.keys['s']) {
+      // Move backward
+      moveX -= Math.sin(this.mouseX);
+      moveZ -= Math.cos(this.mouseX);
+    }
+    if (this.keys['a']) {
+      // Strafe left (perpendicular to forward direction)
+      moveX += Math.cos(this.mouseX);
+      moveZ -= Math.sin(this.mouseX);
+    }
+    if (this.keys['d']) {
+      // Strafe right (perpendicular to forward direction)
+      moveX -= Math.cos(this.mouseX);
+      moveZ += Math.sin(this.mouseX);
     }
 
-    // Apply gravity if enabled
+    // Normalize movement
+    if (moveX !== 0 || moveZ !== 0) {
+      const length = Math.sqrt(moveX * moveX + moveZ * moveZ);
+      moveX /= length;
+      moveZ /= length;
+    }
+
+    // Apply movement
+    this.player.vx = moveX * this.player.speed;
+    this.player.vz = moveZ * this.player.speed;
+
+    // Apply gravity
     if (this.gravityEnabled) {
-      this.player.vy += this.gravity;
+      this.player.vy -= this.gravity;
     } else {
-      // Low gravity effect
-      this.player.vy += this.gravity * 0.3;
+      this.player.vy -= this.gravity * 0.3;
     }
 
     // Update position
     this.player.x += this.player.vx;
     this.player.y += this.player.vy;
+    this.player.z += this.player.vz;
 
     // Keep player in bounds
-    if (this.player.x < 0) this.player.x = 0;
-    if (this.player.x + this.player.width > this.width)
-      this.player.x = this.width - this.player.width;
-    if (this.player.y > this.height) {
-      this.player.y = this.height;
-      this.player.vy = 0;
-      this.player.onGround = true;
-    }
+    this.player.x = Math.max(-19, Math.min(19, this.player.x));
+    this.player.z = Math.max(-19, Math.min(19, this.player.z));
 
     // Platform collision
     this.player.onGround = false;
     for (let platform of this.platforms) {
-      if (this.checkCollision(this.player, platform)) {
-        if (this.player.vy > 0 && this.player.y < platform.y) {
-          // Landing on top
-          this.player.y = platform.y - this.player.height;
-          this.player.vy = 0;
-          this.player.onGround = true;
-        } else if (this.player.vy < 0 && this.player.y > platform.y + platform.height) {
-          // Hitting from below
-          this.player.y = platform.y + platform.height;
-          this.player.vy = 0;
-        } else if (this.player.vx > 0 && this.player.x < platform.x) {
-          // Hitting from left
-          this.player.x = platform.x - this.player.width;
-          this.player.vx = 0;
-        } else if (this.player.vx < 0 && this.player.x > platform.x + platform.width) {
-          // Hitting from right
-          this.player.x = platform.x + platform.width;
-          this.player.vx = 0;
-        }
-      }
-    }
-  }
-
-  updateEnemies() {
-    for (let enemy of this.enemies) {
-      // Simple patrol AI
-      enemy.x += enemy.vx;
-
-      if (enemy.x <= enemy.patrolLeft || enemy.x >= enemy.patrolRight) {
-        enemy.vx *= -1;
-      }
-
-      // Apply gravity to enemies
-      if (this.gravityEnabled) {
-        enemy.vy += this.gravity;
-      } else {
-        enemy.vy += this.gravity * 0.3;
-      }
-
-      enemy.y += enemy.vy;
-
-      // Platform collision for enemies
-      for (let platform of this.platforms) {
-        if (this.checkCollision(enemy, platform)) {
-          if (enemy.vy > 0 && enemy.y < platform.y) {
-            enemy.y = platform.y - enemy.height;
-            enemy.vy = 0;
+      if (this.check3DCollision(this.player, platform)) {
+        // Check if player is above the platform
+        if (this.player.y > platform.y + platform.height / 2) {
+          // Check if player is close enough to the platform surface
+          const distanceToSurface =
+            this.player.y - (platform.y + platform.height / 2 + this.player.height / 2);
+          if (distanceToSurface < 0.1 && this.player.vy <= 0) {
+            this.player.y = platform.y + platform.height / 2 + this.player.height / 2;
+            this.player.vy = 0;
+            this.player.onGround = true;
           }
         }
       }
     }
-  }
 
-  updateParticles() {
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      let particle = this.particles[i];
-      particle.x += particle.vx;
-      particle.y += particle.vy;
-      particle.life--;
-
-      if (particle.life <= 0) {
-        this.particles.splice(i, 1);
-      }
-    }
-  }
-
-  checkCollisions() {
-    // Player vs Items
-    for (let i = this.items.length - 1; i >= 0; i--) {
-      let item = this.items[i];
-      if (this.checkCollision(this.player, item)) {
-        this.collectItem(item);
-        this.items.splice(i, 1);
-      }
+    // Floor collision
+    if (this.player.y <= this.player.height / 2 + 0.1) {
+      this.player.y = this.player.height / 2;
+      this.player.vy = 0;
+      this.player.onGround = true;
     }
 
-    // Player vs Enemies
-    for (let enemy of this.enemies) {
-      if (this.checkCollision(this.player, enemy)) {
-        this.playerTakeDamage(10);
-      }
-    }
+    // Update player mesh position
+    this.player.mesh.position.set(this.player.x, this.player.y, this.player.z);
   }
 
-  checkCollision(rect1, rect2) {
-    return (
-      rect1.x < rect2.x + rect2.width &&
-      rect1.x + rect1.width > rect2.x &&
-      rect1.y < rect2.y + rect2.height &&
-      rect1.y + rect1.height > rect2.y
+  updateCamera() {
+    // First-person camera positioned at player's eye level
+    const eyeHeight = this.player.height * 0.8; // Position camera at 80% of player height
+    this.camera.position.set(this.player.x, this.player.y + eyeHeight, this.player.z);
+
+    // Calculate look direction based on mouse movement
+    const lookDirection = new THREE.Vector3(
+      Math.sin(this.mouseX) * Math.cos(this.mouseY),
+      Math.sin(this.mouseY),
+      Math.cos(this.mouseX) * Math.cos(this.mouseY),
+    );
+
+    // Look in the calculated direction
+    this.camera.lookAt(
+      this.player.x + lookDirection.x,
+      this.player.y + eyeHeight + lookDirection.y,
+      this.player.z + lookDirection.z,
     );
   }
 
+  updateEnemies() {
+    this.enemies.forEach((enemy) => {
+      // Update position
+      enemy.x += enemy.vx;
+
+      // Patrol behavior
+      if (enemy.x <= enemy.patrolLeft || enemy.x >= enemy.patrolRight) {
+        enemy.vx = -enemy.vx;
+      }
+
+      // Apply gravity effect
+      if (!this.gravityEnabled) {
+        enemy.vx *= 0.5;
+      }
+
+      // Update mesh position
+      enemy.mesh.position.set(enemy.x, enemy.y, enemy.z);
+
+      // Add some rotation for visual effect
+      enemy.mesh.rotation.y += 0.02;
+    });
+  }
+
+  updateParticles() {
+    this.particles = this.particles.filter((particle) => {
+      particle.life--;
+      particle.mesh.position.add(particle.velocity);
+      particle.velocity.multiplyScalar(0.98);
+
+      if (particle.life <= 0) {
+        this.scene.remove(particle.mesh);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  checkCollisions() {
+    // Check item collisions
+    this.items.forEach((item) => {
+      if (!item.collected && this.check3DCollision(this.player, item)) {
+        this.collectItem(item);
+      }
+    });
+
+    // Check enemy collisions
+    this.enemies.forEach((enemy) => {
+      if (this.check3DCollision(this.player, enemy)) {
+        this.playerTakeDamage(10);
+      }
+    });
+  }
+
+  check3DCollision(obj1, obj2) {
+    const dx = obj1.x - obj2.x;
+    const dy = obj1.y - obj2.y;
+    const dz = obj1.z - obj2.z;
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    const radius1 = obj1.radius || 0;
+    const radius2 = obj2.radius || 0;
+
+    return distance < radius1 + radius2;
+  }
+
   playerJump() {
+    console.log('Jump attempted. onGround:', this.player.onGround, 'vy:', this.player.vy);
     if (this.player.onGround) {
-      this.player.vy = -this.player.jumpPower;
+      this.player.vy = this.player.jumpPower;
       this.player.onGround = false;
-      this.createParticles(
-        this.player.x + this.player.width / 2,
-        this.player.y + this.player.height,
-        '#ff6b35',
-      );
+      console.log('Jump executed! New vy:', this.player.vy);
+      this.createParticles(this.player.x, this.player.y, this.player.z, 0x00ffff);
+    } else {
+      console.log('Cannot jump - not on ground');
     }
   }
 
   toggleGravity() {
-    if (this.hasGravitySwitch) {
+    if (this.items.some((item) => item.type === 'gravitySwitch' && item.collected)) {
       this.gravityEnabled = !this.gravityEnabled;
-      this.createParticles(
-        this.player.x + this.player.width / 2,
-        this.player.y + this.player.height / 2,
-        '#ffff00',
-      );
+      this.createParticles(this.player.x, this.player.y, this.player.z, 0xffff00);
     }
   }
 
   interact() {
-    // Interaction logic for doors, switches, etc.
-    console.log('Interacting...');
+    // Placeholder for future interactions
+    console.log('Interact pressed');
   }
 
   collectItem(item) {
+    item.collected = true;
+    this.scene.remove(item.mesh);
+
     switch (item.type) {
       case 'health':
         this.player.health = Math.min(this.player.maxHealth, this.player.health + 25);
-        this.createParticles(item.x + item.width / 2, item.y + item.height / 2, '#00ff00');
+        this.createParticles(item.x, item.y, item.z, 0x00ff00);
         break;
       case 'gravitySwitch':
-        this.hasGravitySwitch = true;
-        this.createParticles(item.x + item.width / 2, item.y + item.height / 2, '#ffff00');
+        this.createParticles(item.x, item.y, item.z, 0xffff00);
         break;
       case 'weapon':
-        this.hasWeapon = true;
-        this.createParticles(item.x + item.width / 2, item.y + item.height / 2, '#ff0000');
+        this.createParticles(item.x, item.y, item.z, 0xff0000);
         break;
     }
   }
 
   playerTakeDamage(amount) {
     this.player.health -= amount;
-    this.createParticles(
-      this.player.x + this.player.width / 2,
-      this.player.y + this.player.height / 2,
-      '#ff0000',
-    );
+    this.createParticles(this.player.x, this.player.y, this.player.z, 0xff0000);
 
     if (this.player.health <= 0) {
       this.gameOver();
     }
   }
 
-  createParticles(x, y, color) {
-    for (let i = 0; i < 5; i++) {
+  createParticles(x, y, z, color) {
+    for (let i = 0; i < 10; i++) {
+      const geometry = new THREE.SphereGeometry(0.05);
+      const material = new THREE.MeshBasicMaterial({ color: color });
+      const particle = new THREE.Mesh(geometry, material);
+
+      particle.position.set(x, y, z);
+      particle.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.2,
+        (Math.random() - 0.5) * 0.2,
+        (Math.random() - 0.5) * 0.2,
+      );
+
+      this.scene.add(particle);
       this.particles.push({
-        x: x,
-        y: y,
-        vx: (Math.random() - 0.5) * 4,
-        vy: (Math.random() - 0.5) * 4,
+        mesh: particle,
+        velocity: particle.velocity,
         life: 30,
-        color: color,
       });
     }
   }
 
   gameOver() {
     console.log('Game Over!');
-    this.player.health = 0;
+    // Reset player health for now
+    this.player.health = this.player.maxHealth;
   }
 
   updateUI() {
     document.getElementById('health').textContent = this.player.health;
     document.getElementById('gravity').textContent = this.gravityEnabled ? 'ON' : 'OFF';
     document.getElementById('position').textContent =
-      `${Math.round(this.player.x)}, ${Math.round(this.player.y)}`;
+      `${Math.round(this.player.x)}, ${Math.round(this.player.y)}, ${Math.round(this.player.z)}`;
+    document.getElementById('fps').textContent = Math.round(this.fps);
+
+    // Update light mode display if it exists
+    const lightModeElement = document.getElementById('lightMode');
+    if (lightModeElement) {
+      lightModeElement.textContent = this.lightMode.toUpperCase();
+    }
   }
 
   render() {
-    // Clear canvas
-    this.ctx.fillStyle = '#1a1a2e';
-    this.ctx.fillRect(0, 0, this.width, this.height);
-
-    // Draw background grid (industrial feel)
-    this.ctx.strokeStyle = '#2a2a3e';
-    this.ctx.lineWidth = 1;
-    for (let x = 0; x < this.width; x += 50) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(x, 0);
-      this.ctx.lineTo(x, this.height);
-      this.ctx.stroke();
-    }
-    for (let y = 0; y < this.height; y += 50) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, y);
-      this.ctx.lineTo(this.width, y);
-      this.ctx.stroke();
-    }
-
-    // Draw platforms
-    for (let platform of this.platforms) {
-      this.ctx.fillStyle = platform.color;
-      this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-
-      // Add metallic shine
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      this.ctx.fillRect(platform.x, platform.y, platform.width, 5);
-    }
-
-    // Draw items
-    for (let item of this.items) {
-      this.ctx.fillStyle = item.color;
-      this.ctx.fillRect(item.x, item.y, item.width, item.height);
-
-      // Add glow effect
-      this.ctx.shadowColor = item.color;
-      this.ctx.shadowBlur = 10;
-      this.ctx.fillRect(item.x, item.y, item.width, item.height);
-      this.ctx.shadowBlur = 0;
-    }
-
-    // Draw enemies
-    for (let enemy of this.enemies) {
-      this.ctx.fillStyle = enemy.color;
-      this.ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-
-      // Draw glowing eyes
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.fillRect(enemy.x + 5, enemy.y + 8, 3, 3);
-      this.ctx.fillRect(enemy.x + enemy.width - 8, enemy.y + 8, 3, 3);
-    }
-
-    // Draw particles
-    for (let particle of this.particles) {
-      this.ctx.fillStyle = particle.color;
-      this.ctx.globalAlpha = particle.life / 30;
-      this.ctx.fillRect(particle.x, particle.y, 3, 3);
-    }
-    this.ctx.globalAlpha = 1;
-
-    // Draw player
-    this.ctx.fillStyle = this.player.color;
-    this.ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
-
-    // Draw player details (face, etc.)
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillRect(this.player.x + 8, this.player.y + 10, 4, 4);
-    this.ctx.fillRect(this.player.x + this.player.width - 12, this.player.y + 10, 4, 4);
-
-    // Draw health bar
-    this.ctx.fillStyle = '#ff0000';
-    this.ctx.fillRect(this.player.x, this.player.y - 10, this.player.width, 5);
-    this.ctx.fillStyle = '#00ff00';
-    this.ctx.fillRect(
-      this.player.x,
-      this.player.y - 10,
-      (this.player.health / this.player.maxHealth) * this.player.width,
-      5,
-    );
+    this.renderer.render(this.scene, this.camera);
   }
 
-  gameLoop() {
+  gameLoop(currentTime = 0) {
+    // Calculate FPS
+    if (this.lastTime !== 0) {
+      this.fps = 1000 / (currentTime - this.lastTime);
+    }
+    this.lastTime = currentTime;
+
     this.update();
     this.render();
-    requestAnimationFrame(() => this.gameLoop());
+    requestAnimationFrame((time) => this.gameLoop(time));
+  }
+
+  toggleLightMode() {
+    this.lightMode = this.lightMode === 'light' ? 'dark' : 'light';
+    this.setupLighting();
+
+    // Create particles to show the mode change
+    const particleColor = this.lightMode === 'light' ? 0xffff00 : 0x0066ff;
+    this.createParticles(this.player.x, this.player.y, this.player.z, particleColor);
+
+    console.log(`Switched to ${this.lightMode} mode`);
   }
 }
 
-// Initialize game when page loads
+// Start the game when the page loads
 window.addEventListener('load', () => {
-  new Game();
+  console.log('Page loaded, starting 3D game...');
+
+  // Add a small delay to ensure everything is ready
+  setTimeout(() => {
+    try {
+      new Game3D();
+    } catch (error) {
+      console.error('Failed to start 3D game:', error);
+
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 0, 0, 0.9);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+        text-align: center;
+        max-width: 400px;
+      `;
+      errorDiv.innerHTML = `
+        <h3>Game Failed to Start</h3>
+        <p>Error: ${error.message}</p>
+        <p>Please check your browser console for more details.</p>
+        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #fff; color: #000; border: none; border-radius: 5px; cursor: pointer;">Refresh Page</button>
+      `;
+      document.body.appendChild(errorDiv);
+    }
+  }, 100);
 });

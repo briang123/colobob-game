@@ -1,4 +1,4 @@
-# Space Prison Escape - Development Prompts & Instructions
+# Space Prison Escape 3D - Development Prompts & Instructions
 
 ## 📝 Original Prompts
 
@@ -24,121 +24,143 @@ Let's start building with WASD moment for the main character. The game should us
 /Generate Cursor Rules  Can you create and maintain a "how to play" guide and update it with this information? Also, anytime I ask for changes, can update a prompt.md file with an optimized instruction to build the game. please make sure to include the original prompts, as well.
 ```
 
+### 3D Conversion Request (User's Fourth Request)
+
+```
+are you able to make this a 3D game?
+```
+
 ## 🏗️ Optimized Development Instructions
 
 ### Core Game Architecture
 
-- **Technology Stack**: JavaScript + HTML5 Canvas for browser-based gameplay
-- **Game Engine**: Custom game loop with requestAnimationFrame for 60fps
+- **Technology Stack**: JavaScript + Three.js + HTML5 Canvas for browser-based 3D gameplay
+- **Game Engine**: Custom 3D game loop with Three.js rendering and requestAnimationFrame for 60fps
 - **File Structure**:
-  - [index.html](mdc:index.html) - Main HTML file with canvas and UI
-  - [js/game.js](mdc:js/game.js) - Core game logic and mechanics
-  - [.cursor/rules/how-to-play.md](mdc:.cursor/rules/how-to-play.md) - Player guide
-  - [.cursor/rules/prompt.md](mdc:.cursor/rules/prompt.md) - This development guide
+  - [index.html](mdc:index.html) - Main HTML file with Three.js library and 3D canvas
+  - [js/game.js](mdc:js/game.js) - Core 3D game logic and mechanics
+  - [how-to-play.md](mdc:how-to-play.md) - Player guide for 3D gameplay
+  - [prompt.md](mdc:prompt.md) - This development guide
 
-### 🎯 Essential Game Features (Implemented)
+### 🎯 Essential 3D Game Features (Implemented)
 
-1. **Player Movement System**
+1. **3D Player Movement System**
 
-   - WASD controls with smooth physics and friction
-   - Space jumping with ground detection
-   - Platform collision handling with proper response
-   - Wall boundary constraints
+   - WASD controls with mouse look for full 3D movement
+   - First-person camera with mouse lock functionality
+   - 3D physics with realistic gravity and jumping
+   - Platform collision handling in 3D space
+   - Wall boundary constraints with 3D coordinates
 
-2. **Physics Engine**
+2. **3D Physics Engine**
 
-   - Configurable gravity system (normal/low gravity modes)
+   - Configurable gravity system affecting all 3D objects
    - Velocity-based movement with realistic friction
-   - Comprehensive collision detection for all game objects
-   - Particle system for visual feedback
+   - 3D collision detection using spherical collision volumes
+   - Particle system with 3D particle effects
+   - Shadow mapping for realistic lighting
 
-3. **Enemy AI System**
+3. **3D Enemy AI System**
 
-   - Blue alien guards with patrol patterns
+   - Blue alien guards as 3D capsule meshes
+   - Patrol patterns in 3D space
    - Gravity-aware movement (slower in low gravity)
-   - Simple collision detection with player
-   - Extensible AI framework for future enhancements
+   - 3D collision detection with player
+   - Visual rotation effects for dynamic appearance
 
-4. **Item Collection System**
+4. **3D Item Collection System**
 
-   - Health packs (green) - restore 25 HP
-   - Gravity switch (yellow) - enables G key functionality
-   - Weapons (red) - placeholder for combat system
-   - Visual feedback with particles and glow effects
+   - Health packs (green spheres) - restore 25 HP
+   - Gravity switch (yellow spheres) - enables G key functionality
+   - Weapons (red spheres) - placeholder for combat system
+   - Emissive materials for glowing effects
+   - 3D particle feedback systems
 
-5. **Visual Effects & UI**
-   - Particle system for feedback
-   - Glowing elements and industrial sci-fi aesthetic
-   - Real-time UI updates
-   - Bright lighting with industrial color scheme
+5. **3D Visual Effects & Lighting**
+   - Multiple light sources (ambient, directional, point lights)
+   - Real-time shadow mapping
+   - 3D particle systems for feedback
+   - Industrial sci-fi aesthetic with atmospheric lighting
+   - Anti-aliasing and high-quality rendering
 
 ## 📋 Development Guidelines
 
-### 🎨 Visual Design Standards
+### 🎨 3D Visual Design Standards
 
 - **Color Palette**:
   - UI: #00ffff (cyan) for highlights and text
-  - Player: #ff6b35 (orange) for human character
-  - Enemies: #0066ff (blue) for alien guards
+  - Player: #ff6b35 (orange) for human character capsule
+  - Enemies: #0066ff (blue) for alien guard capsules
   - Environment: Industrial grays (#2a2a3e, #3a3a4e, #4a4a4e)
-  - Items: Green (#00ff00), Yellow (#ffff00), Red (#ff0000)
-- **Lighting**: Bright, industrial sci-fi aesthetic (not dark/moody)
-- **Effects**: Glowing elements, particle systems, metallic shine
-- **Style**: Industrial sci-fi with clean, geometric shapes
+  - Items: Green (#00ff00), Yellow (#ffff00), Red (#ff0000) spheres
+- **Lighting**: Multiple light sources for atmospheric sci-fi environment
+- **Effects**: 3D particle systems, emissive materials, shadow mapping
+- **Style**: Industrial sci-fi with realistic 3D lighting and shadows
 
-### 💻 Code Structure Standards
+### 💻 3D Code Structure Standards
 
-- **ES6 Classes**: Use modern JavaScript classes for game objects
-- **Collision Detection**: Implement proper AABB collision for all interactive elements
-- **Particle Effects**: Add visual feedback for important actions
+- **Three.js Integration**: Use Three.js for all 3D rendering and scene management
+- **3D Collision Detection**: Implement spherical collision detection for all interactive elements
+- **3D Particle Effects**: Add visual feedback using Three.js particle systems
 - **Error Handling**: Include bounds checking and graceful error recovery
-- **Performance**: Optimize for 60fps gameplay with efficient rendering
-- **Modularity**: Keep code organized and reusable
+- **Performance**: Optimize for 60fps 3D gameplay with efficient rendering
+- **Modularity**: Keep 3D code organized and reusable
 
-### 🔧 File Organization
+### 🔧 3D File Organization
 
-- **Game Logic**: Keep core mechanics in [js/game.js](mdc:js/game.js)
-- **HTML Structure**: Maintain clean, semantic HTML in [index.html](mdc:index.html)
-- **Documentation**: Update [.cursor/rules/how-to-play.md](mdc:.cursor/rules/how-to-play.md) for new features
-- **Development Tracking**: Maintain this prompt file with all changes
+- **3D Game Logic**: Keep core 3D mechanics in [js/game.js](mdc:js/game.js)
+- **HTML Structure**: Maintain Three.js library inclusion in [index.html](mdc:index.html)
+- **Documentation**: Update [how-to-play.md](mdc:how-to-play.md) for new 3D features
+- **Development Tracking**: Maintain this prompt file with all 3D changes
 
-### 🚀 Feature Implementation Workflow
+### 🚀 3D Feature Implementation Workflow
 
-1. **Plan**: Define feature requirements and visual design
-2. **Implement**: Add code following established patterns
-3. **Test**: Verify collision detection, physics, and visual effects
-4. **Polish**: Add particles, UI updates, and visual feedback
+1. **Plan**: Define 3D feature requirements and visual design
+2. **Implement**: Add Three.js code following established patterns
+3. **Test**: Verify 3D collision detection, physics, and visual effects
+4. **Polish**: Add 3D particles, UI updates, and visual feedback
 5. **Document**: Update how-to-play guide and this prompt file
-6. **Optimize**: Ensure 60fps performance
+6. **Optimize**: Ensure 60fps 3D performance
 
-## 🎮 Planned Feature Implementation Order
+## 🎮 Planned 3D Feature Implementation Order
 
-1. **Shape-shifting mechanics** for player (morph into different forms)
-2. **Enhanced enemy AI** with elite guards and smarter patrol patterns
-3. **Interactive elements** (doors, switches, terminals)
-4. **Combat system** with weapons and attack mechanics
-5. **Multiple levels/areas** with different prison sections
-6. **Sound effects and music** for immersive experience
-7. **Escape objectives** and win conditions
-8. **Save/load system** for game progress
+1. **Shape-shifting mechanics** for player (morph into different 3D forms)
+2. **Enhanced 3D enemy AI** with elite guards and smarter patrol patterns
+3. **Interactive 3D elements** (doors, switches, terminals)
+4. **3D combat system** with weapons and projectile mechanics
+5. **Multiple 3D levels/areas** with different prison sections
+6. **3D spatial audio** for immersive experience
+7. **3D escape objectives** and win conditions
+8. **VR support** for immersive 3D experience
 
-## ✅ Quality Assurance Checklist
+## ✅ 3D Quality Assurance Checklist
 
-- [ ] All new features work with existing gravity system
-- [ ] Collision detection properly implemented and tested
-- [ ] Visual feedback (particles) added for important actions
-- [ ] UI updated to reflect new game states
-- [ ] Performance optimized for smooth 60fps gameplay
-- [ ] How-to-play guide updated with new features
-- [ ] This prompt file updated with new instructions
-- [ ] Code follows established patterns and standards
-- [ ] Visual design maintains industrial sci-fi aesthetic
-- [ ] Error handling and bounds checking implemented
+- [ ] All new 3D features work with existing gravity system
+- [ ] 3D collision detection properly implemented and tested
+- [ ] 3D visual feedback (particles) added for important actions
+- [ ] UI updated to reflect new 3D game states
+- [ ] Performance optimized for smooth 60fps 3D gameplay
+- [ ] How-to-play guide updated with new 3D features
+- [ ] This prompt file updated with new 3D instructions
+- [ ] Code follows established Three.js patterns and standards
+- [ ] 3D visual design maintains industrial sci-fi aesthetic
+- [ ] Error handling and bounds checking implemented for 3D space
 
-## 🔄 Maintenance Tasks
+## 🔄 3D Maintenance Tasks
 
-- **Regular Updates**: Keep documentation current with game changes
-- **Performance Monitoring**: Ensure smooth gameplay as features are added
-- **Code Review**: Maintain clean, readable, and efficient code
-- **User Experience**: Test gameplay flow and difficulty balance
-- **Cross-browser Testing**: Ensure compatibility across modern browsers
+- **Regular Updates**: Keep documentation current with 3D game changes
+- **Performance Monitoring**: Ensure smooth 3D gameplay as features are added
+- **Code Review**: Maintain clean, readable, and efficient Three.js code
+- **User Experience**: Test 3D gameplay flow and difficulty balance
+- **Cross-browser Testing**: Ensure WebGL compatibility across modern browsers
+
+## 🎨 3D Graphics Features Implemented
+
+- **WebGL Rendering**: Hardware-accelerated 3D graphics via Three.js
+- **Real-time Shadows**: Dynamic shadow mapping for all 3D objects
+- **Particle Systems**: 3D particle effects for actions and feedback
+- **Emissive Materials**: Glowing items and atmospheric lighting
+- **Anti-aliasing**: Smooth edges and high-quality 3D rendering
+- **Perspective Camera**: Realistic 3D perspective with depth
+- **Lighting System**: Multiple light types for atmospheric sci-fi environment
+- **Mouse Lock**: Immersive 3D control with pointer lock API
