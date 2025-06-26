@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- For any game updates, please update [prompt.md](mdc:prompt.md) with updated optimized prompts for the game development
+
+- Update the [how-to-play.md](mdc:how-to-play.md) with any updated information to help the user understand how to play the game.

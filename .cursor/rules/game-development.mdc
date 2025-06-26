@@ -1,0 +1,33 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Space Prison Escape - Development Rules
+
+## Documentation Maintenance
+- **Always update** [how-to-play.md](mdc:how-to-play.md) when adding new game features or mechanics
+- **Always update** [prompt.md](mdc:prompt.md) with optimized development instructions for new features
+- **Maintain consistency** between game code and documentation
+
+## Development Standards
+- **Visual Design**: Follow industrial sci-fi aesthetic with bright lighting and glowing elements
+- **Color Palette**: Use established colors (#00ffff for UI, #ff6b35 for player, #0066ff for enemies)
+- **Performance**: Ensure 60fps gameplay with smooth physics
+- **Code Quality**: Use ES6 classes, proper collision detection, and particle effects for feedback
+
+## File Structure
+- [index.html](mdc:index.html) - Main game HTML with canvas and UI
+- [js/game.js](mdc:js/game.js) - Core game logic and mechanics
+- [how-to-play.md](mdc:how-to-play.md) - Player guide and instructions
+- [prompt.md](mdc:prompt.md) - Development history and optimized instructions
+
+## Quality Checklist
+When adding new features, ensure:
+- [ ] Collision detection properly implemented
+- [ ] Visual feedback (particles) added
+- [ ] UI updated to reflect new states
+- [ ] Performance optimized for 60fps
+- [ ] Documentation updated
+- [ ] Visual design maintains consistency
+
