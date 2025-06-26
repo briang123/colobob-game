@@ -194,10 +194,19 @@
         margin-bottom: 18px;
         box-shadow: 0 2px 12px #00ffff11;
         overflow: hidden;
-        transition: box-shadow 0.2s;
+        transition: 
+          box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+          border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateZ(0); /* Force hardware acceleration */
+      }
+      .accordion-section:hover {
+        transform: translateZ(0) scale(1.01);
       }
       .accordion-section.expanded {
         box-shadow: 0 4px 24px #00ffff33;
+        border-color: #00ffff55;
+        transform: translateZ(0) scale(1.02);
       }
       .accordion-header {
         cursor: pointer;
@@ -212,30 +221,51 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        transition: 
+          background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+          color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateZ(0);
+      }
+      .accordion-header:hover {
+        background: rgba(0, 255, 255, 0.12);
+        color: #ffffff;
+        transform: translateZ(0) translateX(2px);
+      }
+      .accordion-header:active {
+        transform: translateZ(0) translateX(1px) scale(0.98);
       }
       .accordion-header::before {
         content: '\25BC';
         font-size: 13px;
         display: inline-block;
-        transition: transform 0.3s;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         margin-right: 6px;
+        transform-origin: center;
+        will-change: transform;
       }
       .accordion-section:not(.expanded) .accordion-header::before {
         transform: rotate(-90deg);
       }
       .accordion-body {
-        max-height: 2000px;
-        overflow: hidden;
-        transition:
-          max-height 0.45s cubic-bezier(0.77, 0, 0.18, 1),
-          padding 0.3s;
-        padding: 12px 8px 8px 16px;
-        background: transparent;
-      }
-      .accordion-section:not(.expanded) .accordion-body {
         max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
+        overflow: hidden;
+        transition: 
+          max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+          opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+          padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0;
+        transform: translateY(-10px);
+        padding: 0 8px 0 16px;
+        background: transparent;
+        will-change: max-height, opacity, transform;
+      }
+      .accordion-section.expanded .accordion-body {
+        max-height: 2000px;
+        opacity: 1;
+        transform: translateY(0);
+        padding: 12px 8px 8px 16px;
       }
 
       /* Settings Controls */
@@ -389,6 +419,55 @@
       #fullscreenButton {
         display: none !important;
       }
+
+      .profile-controls {
+        margin-top: 24px;
+        padding: 12px 0 0 0;
+        border-top: 1px solid #00ffff33;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .profile-controls label {
+        color: #00ffff;
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+        margin-right: 4px;
+      }
+      .profile-controls input[type='text'] {
+        background: #181828;
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        border-radius: 3px;
+        padding: 4px 8px;
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+        width: 140px;
+      }
+      .profile-controls select {
+        background: #181828;
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        border-radius: 3px;
+        padding: 4px 8px;
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+      }
+      .profile-controls button {
+        background: rgba(0, 255, 255, 0.12);
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .profile-controls button:hover {
+        background: rgba(0, 255, 255, 0.25);
+      }
     </style>
   </head>
   <body>
@@ -540,19 +619,88 @@
             </div>
           </div>
         </div>
+        <div class="accordion-section expanded" id="checkpointAccordion">
+          <div class="accordion-header">Checkpoints</div>
+          <div class="accordion-body">
+            <div class="setting-group">
+              <label
+                >Current Checkpoints: <span id="checkpointCountValue">0</span> /
+                <span id="maxCheckpointsValue">5</span></label
+              >
+            </div>
+            <div class="setting-group">
+              <label>Checkpoint Controls:</label>
+              <div class="button-group">
+                <button id="createCheckpointBtn">Create Checkpoint (C)</button>
+                <button id="respawnCheckpointBtn">Respawn (R)</button>
+                <button id="clearCheckpointsBtn">Clear All</button>
+              </div>
+            </div>
+            <div class="setting-group">
+              <label>Max Checkpoints: <span id="maxCheckpointsSliderValue">5</span></label>
+              <input type="range" id="maxCheckpointsSlider" min="1" max="10" step="1" value="5" />
+            </div>
+            <div class="setting-group">
+              <p style="font-size: 12px; color: #00ffff88; margin: 10px 0">
+                <strong>Controls:</strong><br />
+                • Press <strong>C</strong> to create a checkpoint<br />
+                • Press <strong>R</strong> to respawn at last checkpoint<br />
+                • Checkpoints appear as green glowing markers
+              </p>
+            </div>
+          </div>
+        </div>
         <div class="accordion-section expanded" id="visualAccordion">
           <div class="accordion-header">Visual & Audio</div>
           <div class="accordion-body">
             <div class="setting-group">
-              <label>Light Intensity: <span id="lightIntensityValue">1.0</span></label>
+              <label
+                >Ambient Light Intensity: <span id="ambientLightIntensityValue">1.0</span></label
+              >
               <input
                 type="range"
-                id="lightIntensitySlider"
-                min="0.1"
+                id="ambientLightIntensitySlider"
+                min="0.0"
                 max="2.0"
-                step="0.1"
+                step="0.05"
                 value="1.0"
               />
+            </div>
+            <div class="setting-group">
+              <label
+                >Directional Light Intensity:
+                <span id="directionalLightIntensityValue">1.0</span></label
+              >
+              <input
+                type="range"
+                id="directionalLightIntensitySlider"
+                min="0.0"
+                max="2.0"
+                step="0.05"
+                value="1.0"
+              />
+            </div>
+            <div class="setting-group">
+              <label
+                >Ambient Light Color:
+                <input type="color" id="ambientLightColorPicker" value="#ffffff"
+              /></label>
+            </div>
+            <div class="setting-group">
+              <label
+                >Directional Light Color:
+                <input type="color" id="directionalLightColorPicker" value="#ffffff"
+              /></label>
+            </div>
+            <div class="setting-group">
+              <label
+                >Background Color: <input type="color" id="backgroundColorPicker" value="#1a1a2e"
+              /></label>
+            </div>
+            <div class="setting-group">
+              <label>Lighting Presets:</label>
+              <button id="lightingDayPreset">Day</button>
+              <button id="lightingNightPreset">Night</button>
             </div>
             <div class="setting-group">
               <label>Particle Count: <span id="particleCountValue">100</span></label>
@@ -581,6 +729,15 @@
         </div>
         <div id="gameSettingsOutput" style="display: none">
           <textarea id="gameSettingsText" readonly rows="6" cols="50"></textarea>
+        </div>
+        <div class="profile-controls">
+          <label for="profileNameInput">Profile Name:</label>
+          <input type="text" id="profileNameInput" placeholder="Enter profile name" />
+          <button id="saveProfileBtn">Save Profile</button>
+          <label for="loadProfileSelect">Load Profile:</label>
+          <select id="loadProfileSelect"></select>
+          <button id="loadProfileBtn">Load</button>
+          <button id="deleteProfileBtn">Delete</button>
         </div>
       </div>
     </div>

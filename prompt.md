@@ -150,9 +150,9 @@ are you able to make this a 3D game?
 
 - **Regular Updates**: Keep documentation current with 3D game changes
 - **Performance Monitoring**: Ensure smooth 3D gameplay as features are added
-- **Code Review**: Maintain clean, readable, and efficient Three.js code
-- **User Experience**: Test 3D gameplay flow and difficulty balance
-- **Cross-browser Testing**: Ensure WebGL compatibility across modern browsers
+- [ ] Code Review: Maintain clean, readable, and efficient Three.js code
+- [ ] User Experience: Test 3D gameplay flow and difficulty balance
+- [ ] Cross-browser Testing: Ensure WebGL compatibility across modern browsers
 
 ## 🎨 3D Graphics Features Implemented
 
@@ -242,3 +242,145 @@ The jumping system features:
 - Settings can be exported and shared for permanent implementation
 - The debugger provides immediate feedback for testing different configurations
 - The system supports both cell-based physics and space physics modes
+
+## 🎮 Game Features
+
+### **3D First-Person Controls**
+
+- WASD movement relative to camera direction
+- Mouse look with sensitivity control
+- Jump charging system (hold SPACE to charge)
+- Gravity toggle for space physics
+- Fullscreen toggle and mouse lock
+
+### **Advanced Physics System**
+
+- Dual physics modes: Cell (normal gravity) and Space (low gravity)
+- Configurable jump power, charge time, and movement speed
+- Real-time gravity adjustment
+- Ground level and boundary controls
+
+### **Comprehensive Settings Panel**
+
+- **Physics & Movement**: Player height, gravity, jump settings, movement speed
+- **Camera & Controls**: Mouse sensitivity, camera height, field of view
+- **Enemies & Gameplay**: Enemy speed, detection range, player health
+- **Visual & Audio**: Lighting, particle count, shadow quality
+- **Real-time Updates**: All sliders update game values immediately
+- **Reset to Defaults**: One-click restoration of all original settings
+- **Copy Settings**: Export current configuration to clipboard
+
+### **Profile Management System**
+
+- Save/load/delete named profiles
+- Auto-created "Daytime" and "Night" default profiles
+- Persistent storage using localStorage
+- Complete settings backup and restore
+
+### **3D Environment & Objects**
+
+- Industrial sci-fi prison aesthetic
+- Multiple platforms and walls for navigation
+- Collectible items with different effects:
+  - Health packs (green spheres) - restore 25 HP
+  - Gravity switch (yellow spheres) - enables G key functionality
+  - Weapons (red spheres) - placeholder for combat system
+  - Emissive materials for glowing effects
+  - 3D particle feedback systems
+
+### **3D Visual Effects & Lighting**
+
+- Multiple light sources (ambient, directional, point lights)
+- Real-time shadow mapping
+- 3D particle systems for feedback
+- Industrial sci-fi aesthetic with atmospheric lighting
+- Anti-aliasing and high-quality rendering
+- Dynamic lighting controls and presets
+
+### Checkpoint System
+
+- **Checkpoint Creation**: Press C to create a checkpoint at current position
+- **Respawn Function**: Press R to respawn at the last checkpoint
+- **Visual Markers**: Green glowing cylindrical markers on the ground
+- **Health Restoration**: Respawn restores full health and resets velocity
+- **Maximum Limit**: Up to 5 checkpoints can be placed simultaneously
+- **Animated Effects**: Pulsing and rotating checkpoint markers
+
+### Interactive Controls
+
+- **WASD Movement**: Standard FPS controls
+- **Mouse Look**: Click to lock/unlock mouse
+- **Space Jump**: Charge-based jumping system
+- **Gravity Toggle**: G key
+- **Light Mode Toggle**: L key
+- **Fullscreen**: F key
+- **Interaction**: E key
+
+### Visual System
+
+- **Dynamic Lighting**: Ambient and directional lighting
+- **Particle Effects**: Visual feedback for actions
+- **Shadow Mapping**: Real-time shadows
+- **Light/Dark Modes**: Toggle between different lighting presets
+
+### Game Controls Panel
+
+- **Physics Settings**: Adjust gravity, jump power, movement speed
+- **Camera Controls**: Mouse sensitivity, FOV, camera height
+- **Visual Settings**: Lighting intensity, particle count, shadow quality
+- **Checkpoint Management**: Create, respawn, clear all checkpoints
+- **Profile System**: Save and load game configurations
+
+## Technical Implementation
+
+### Three.js Integration
+
+- WebGL renderer with antialiasing
+- Perspective camera with adjustable FOV
+- Phong material for realistic lighting
+- Shadow mapping for depth perception
+
+### Game State Management
+
+- Player position, velocity, and health tracking
+- Checkpoint array with visual meshes
+- Physics mode detection (cell vs space)
+- Input handling with key state management
+
+### UI System
+
+- Real-time HUD with health, position, FPS
+- Animated checkpoint messages
+- Responsive control panel with accordion sections
+- Profile save/load functionality
+
+## Development Guidelines
+
+### Code Structure
+
+- ES6 class-based architecture
+- Modular method organization
+- Comprehensive error handling
+- Console logging for debugging
+
+### Performance Optimization
+
+- Efficient rendering loop
+- Optimized particle systems
+- Responsive input handling
+- Memory management for checkpoints
+
+### User Experience
+
+- Intuitive controls
+- Visual feedback for all actions
+- Smooth animations and transitions
+- Accessible control panel
+
+## Future Enhancements
+
+- Sound effects and music
+- More complex level design
+- Enemy AI improvements
+- Multiplayer functionality
+- Mobile device support

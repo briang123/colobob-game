@@ -16,6 +16,8 @@ You are a human prisoner trapped in a futuristic 3D space prison complex. You mu
 - **F** - Toggle fullscreen
 - **J** - Toggle jump debugger window
 - **S**: Toggle game settings panel
+- **C** - Create a checkpoint at current position
+- **R** - Respawn at the last checkpoint created
 
 ## ⚙️ Game Mechanics
 
@@ -190,3 +192,86 @@ Press **S** or click the ⚙️ button in the jump debugger to open the comprehe
 - The game settings panel provides fine-tune control over all aspects of the game
 - Adjust enemy speed and detection range to change difficulty
 - Modify visual settings to optimize performance on your device
+
+## 🎮 Game Controls
+
+### **First-Person Movement**
+
+- **WASD** - Move (relative to where you're looking)
+- **MOUSE** - Look around (click to lock mouse)
+- **ESC** - Toggle mouse lock
+
+### **Physics Controls**
+
+- **SPACE** - Jump (hold to charge in cell mode)
+- **SHIFT** - Float downward (in space mode)
+- **G** - Toggle gravity (when gravity switch is found)
+- **L** - Toggle light/dark mode
+- **F** - Toggle fullscreen
+
+### **Settings Panel**
+
+- **⚙️ Button** (top right) - Open/close settings panel
+- **Accordion sections** - Expand/collapse different setting categories
+- **Sliders** - Adjust game parameters in real-time
+- **Color pickers** - Change lighting colors
+- **Save/Load Profiles** - Save named configurations
+- **Reset to Default** - Restore all settings to original values
+- **Copy Settings** - Copy current settings to clipboard
+
+### **Profile Management**
+
+- **Save Profile** - Save current settings with a custom name
+- **Load Profile** - Load previously saved settings
+- **Delete Profile** - Remove saved profiles
+- **Default Profiles** - "Daytime" and "Night" profiles are auto-created
+
+### Checkpoint System
+
+- **C** - Create a checkpoint at current position
+- **R** - Respawn at the last checkpoint created
+- **Maximum 5 checkpoints** can be placed at once
+- Checkpoints appear as **green glowing markers** on the ground
+- Respawn restores full health and resets velocity
+
+### Physics Modes
+
+- **Cell Physics**: Normal gravity and movement within the prison cell
+- **Space Physics**: Zero gravity, momentum-based movement outside the cell
+
+### Health System
+
+- Player has 100 health points
+- Health can be restored by respawning at checkpoints
+- Health is displayed in the top-left UI
+
+### Visual Effects
+
+- Particle effects for various actions
+- Dynamic lighting system
+- Smooth animations and transitions
+
+### Tips for Success
+
+1. **Use checkpoints strategically** - Place them before difficult jumps or dangerous areas
+2. **Master the jump charging** - Hold space longer for higher jumps
+3. **Explore the environment** - Look for platforms and items
+4. **Watch your health** - Don't take unnecessary damage
+5. **Experiment with physics** - Use gravity toggle to your advantage
+
+## Game Controls Panel
+
+Access the game controls panel by clicking the gear icon (⚙️) in the top-right corner. This panel allows you to:
+
+- Adjust physics settings (gravity, jump power, movement speed)
+- Modify camera controls (sensitivity, FOV)
+- Change visual settings (lighting, particle count)
+- Manage checkpoints (create, respawn, clear all)
+- Save and load game profiles
+
+## Troubleshooting
+
+- If the game doesn't respond, try refreshing the page
+- Make sure your browser supports WebGL
+- Check the browser console for any error messages
+- Ensure JavaScript is enabled in your browser

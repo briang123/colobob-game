@@ -62,10 +62,10 @@ class Game3D {
 
     // Cell boundary system
     this.cellBounds = {
-      minX: -10,
-      maxX: 10,
-      minZ: -10,
-      maxZ: 10,
+      minX: -this.cellBoundary,
+      maxX: this.cellBoundary,
+      minZ: -this.cellBoundary,
+      maxZ: this.cellBoundary,
       height: 8,
     };
     this.inCell = true; // Track if player is inside the cell
@@ -107,6 +107,14 @@ class Game3D {
     this.items = [];
     this.particles = [];
     this.lights = [];
+    this.checkpoints = []; // Array to store checkpoint objects
+
+    // Checkpoint system
+    this.currentCheckpoint = null;
+    this.checkpointKey = 'c'; // Key to create checkpoints
+    this.respawnKey = 'r'; // Key to respawn at last checkpoint
+    this.checkpointCount = 0;
+    this.maxCheckpoints = 5; // Maximum number of checkpoints allowed
 
     // Initialize 3D world
     this.init3DWorld();
@@ -116,6 +124,10 @@ class Game3D {
 
     console.log('3D Game initialization complete!');
     this.hideLoadingScreen();
+
+    // Ensure the game object is globally accessible
+    window.game3D = this;
+    console.log('Game object assigned to window.game3D:', !!window.game3D);
   }
 
   resizeCanvas() {
@@ -221,6 +233,12 @@ class Game3D {
       }
       if (e.key === 'l' || e.key === 'L') {
         this.toggleLightMode();
+      }
+      if (e.key === 'c' || e.key === 'C') {
+        this.createCheckpoint();
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        this.respawnAtCheckpoint();
       }
     });
 
@@ -339,11 +357,16 @@ class Game3D {
     });
     this.lights = [];
 
+    // Clear references
+    this.ambientLight = null;
+    this.directionalLight = null;
+
     if (this.lightMode === 'light') {
       // Daylight lighting - warm and bright
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       this.scene.add(ambientLight);
       this.lights.push(ambientLight);
+      this.ambientLight = ambientLight;
 
       // Main sunlight from above
       const directionalLight = new THREE.DirectionalLight(0xfff4e6, 1.2);
@@ -359,6 +382,7 @@ class Game3D {
       directionalLight.shadow.camera.bottom = -20;
       this.scene.add(directionalLight);
       this.lights.push(directionalLight);
+      this.directionalLight = directionalLight;
 
       // Additional warm fill light
       const fillLight = new THREE.DirectionalLight(0xffe6cc, 0.4);
@@ -373,6 +397,7 @@ class Game3D {
       const ambientLight = new THREE.AmbientLight(0x101020, 0.2);
       this.scene.add(ambientLight);
       this.lights.push(ambientLight);
+      this.ambientLight = ambientLight;
 
       // Dim main light for basic visibility
       const directionalLight = new THREE.DirectionalLight(0x202040, 0.3);
@@ -388,6 +413,7 @@ class Game3D {
       directionalLight.shadow.camera.bottom = -20;
       this.scene.add(directionalLight);
       this.lights.push(directionalLight);
+      this.directionalLight = directionalLight;
 
       // Neon blue lights at the top of the prison
       const neonLight1 = new THREE.PointLight(0x00ffff, 0.8, 25);
@@ -678,16 +704,16 @@ class Game3D {
     this.player.z += this.player.vz;
 
     // Keep player in bounds
-    this.player.x = Math.max(-19, Math.min(19, this.player.x));
-    this.player.z = Math.max(-19, Math.min(19, this.player.z));
+    this.player.x = Math.max(-this.cellBoundary, Math.min(this.cellBoundary, this.player.x));
+    this.player.z = Math.max(-this.cellBoundary, Math.min(this.cellBoundary, this.player.z));
 
     // Ground detection - only applies inside cell
     if (this.inCell) {
       this.player.onGround = false;
 
-      // Check floor collision first
-      if (this.player.y <= this.player.height / 2 + 0.1) {
-        this.player.y = this.player.height / 2;
+      // Check floor collision first - use groundLevel setting
+      if (this.player.y <= this.groundLevel + this.player.height / 2 + 0.1) {
+        this.player.y = this.groundLevel + this.player.height / 2;
         this.player.vy = 0;
         this.player.onGround = true;
       }
@@ -719,7 +745,7 @@ class Game3D {
 
   updateCamera() {
     // First-person camera positioned at player's eye level
-    const eyeHeight = this.player.height * 0.8; // Position camera at 80% of player height
+    const eyeHeight = this.camera.position.y - this.player.y; // Use camera height setting
     this.camera.position.set(this.player.x, this.player.y + eyeHeight, this.player.z);
 
     // Calculate look direction based on mouse movement
@@ -913,6 +939,12 @@ class Game3D {
         jumpChargeElement.textContent = 'N/A';
       }
     }
+
+    // Update checkpoint display
+    const checkpointCountElement = document.getElementById('checkpointCountValue');
+    const maxCheckpointsElement = document.getElementById('maxCheckpointsValue');
+    if (checkpointCountElement) checkpointCountElement.textContent = this.checkpointCount;
+    if (maxCheckpointsElement) maxCheckpointsElement.textContent = this.maxCheckpoints;
   }
 
   render() {
@@ -965,6 +997,160 @@ class Game3D {
       this.createParticles(this.player.x, this.player.y, this.player.z, 0xff6600);
     }
   }
+
+  updateCellBounds() {
+    // Update cell bounds when cell boundary setting changes
+    this.cellBounds.minX = -this.cellBoundary;
+    this.cellBounds.maxX = this.cellBoundary;
+    this.cellBounds.minZ = -this.cellBoundary;
+    this.cellBounds.maxZ = this.cellBoundary;
+  }
+
+  createCheckpoint() {
+    if (this.checkpointCount >= this.maxCheckpoints) {
+      this.showCheckpointMessage('Maximum checkpoints reached!', 'warning');
+      return;
+    }
+
+    const checkpoint = {
+      id: this.checkpointCount + 1,
+      x: this.player.x,
+      y: this.player.y,
+      z: this.player.z,
+      timestamp: Date.now(),
+      mesh: null,
+    };
+
+    // Create visual checkpoint marker
+    const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 8);
+    const material = new THREE.MeshPhongMaterial({
+      color: 0x00ff00,
+      transparent: true,
+      opacity: 0.8,
+      emissive: 0x00ff00,
+      emissiveIntensity: 0.3,
+    });
+    checkpoint.mesh = new THREE.Mesh(geometry, material);
+    checkpoint.mesh.position.set(checkpoint.x, checkpoint.y - 0.5, checkpoint.z);
+    checkpoint.mesh.rotation.x = Math.PI / 2; // Lay flat on ground
+    this.scene.add(checkpoint.mesh);
+
+    // Add pulsing animation
+    this.animateCheckpoint(checkpoint.mesh);
+
+    this.checkpoints.push(checkpoint);
+    this.currentCheckpoint = checkpoint;
+    this.checkpointCount++;
+
+    this.showCheckpointMessage(`Checkpoint ${checkpoint.id} created!`, 'success');
+    console.log(
+      `Checkpoint ${checkpoint.id} created at (${checkpoint.x.toFixed(1)}, ${checkpoint.y.toFixed(1)}, ${checkpoint.z.toFixed(1)})`,
+    );
+  }
+
+  respawnAtCheckpoint() {
+    if (!this.currentCheckpoint) {
+      this.showCheckpointMessage('No checkpoint available!', 'error');
+      return;
+    }
+
+    // Reset player position and velocity
+    this.player.x = this.currentCheckpoint.x;
+    this.player.y = this.currentCheckpoint.y;
+    this.player.z = this.currentCheckpoint.z;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.vz = 0;
+
+    // Reset player health
+    this.player.health = this.player.maxHealth;
+
+    // Update player mesh position
+    if (this.player.mesh) {
+      this.player.mesh.position.set(this.player.x, this.player.y, this.player.z);
+    }
+
+    this.showCheckpointMessage(`Respawned at Checkpoint ${this.currentCheckpoint.id}!`, 'success');
+    console.log(`Respawned at checkpoint ${this.currentCheckpoint.id}`);
+  }
+
+  animateCheckpoint(mesh) {
+    const animate = () => {
+      if (mesh && mesh.material) {
+        mesh.material.opacity = 0.4 + Math.sin(Date.now() * 0.005) * 0.3;
+        mesh.material.emissiveIntensity = 0.2 + Math.sin(Date.now() * 0.003) * 0.2;
+        mesh.rotation.y += 0.01;
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
+  }
+
+  showCheckpointMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: ${
+        type === 'success'
+          ? 'rgba(0, 255, 0, 0.9)'
+          : type === 'error'
+            ? 'rgba(255, 0, 0, 0.9)'
+            : type === 'warning'
+              ? 'rgba(255, 165, 0, 0.9)'
+              : 'rgba(0, 255, 255, 0.9)'
+      };
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 2000;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      animation: fadeInOut 2s ease-in-out;
+    `;
+    messageDiv.textContent = message;
+    document.body.appendChild(messageDiv);
+
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Remove message after animation
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
+    }, 2000);
+  }
+
+  clearAllCheckpoints() {
+    // Remove all checkpoint meshes from scene
+    this.checkpoints.forEach((checkpoint) => {
+      if (checkpoint.mesh && checkpoint.mesh.parent) {
+        checkpoint.mesh.parent.remove(checkpoint.mesh);
+      }
+    });
+
+    this.checkpoints = [];
+    this.currentCheckpoint = null;
+    this.checkpointCount = 0;
+
+    this.showCheckpointMessage('All checkpoints cleared!', 'info');
+    console.log('All checkpoints cleared');
+  }
 }
 
 // Start the game when the page loads
@@ -1005,11 +1191,19 @@ window.addEventListener('load', () => {
   }, 100);
 });
 
-window.addEventListener('DOMContentLoaded', () => {
+function setupGameControlSliders() {
+  console.log('Setting up game control sliders...');
+
   // Side panel open/close
   const panel = document.getElementById('gameControlsPanel');
   const toggleBtn = document.getElementById('toggleGameControls');
   const fullscreenBtn = document.getElementById('fullscreenToggle');
+
+  console.log('Panel elements found:', {
+    panel: !!panel,
+    toggleBtn: !!toggleBtn,
+    fullscreenBtn: !!fullscreenBtn,
+  });
 
   // Start closed, show cog
   let open = false;
@@ -1041,9 +1235,27 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Accordion logic
   document.querySelectorAll('.accordion-header').forEach((header) => {
-    header.addEventListener('click', () => {
+    header.addEventListener('click', (e) => {
+      e.preventDefault();
       const section = header.parentElement;
-      section.classList.toggle('expanded');
+      const isExpanding = !section.classList.contains('expanded');
+
+      // Add a small delay for smoother animation
+      if (isExpanding) {
+        // When expanding, add the class immediately
+        section.classList.add('expanded');
+      } else {
+        // When collapsing, add a small delay for better visual effect
+        setTimeout(() => {
+          section.classList.remove('expanded');
+        }, 50);
+      }
+
+      // Prevent rapid clicking
+      header.style.pointerEvents = 'none';
+      setTimeout(() => {
+        header.style.pointerEvents = 'auto';
+      }, 500);
     });
   });
 
@@ -1055,4 +1267,843 @@ window.addEventListener('DOMContentLoaded', () => {
       updateToggleIcon();
     }
   });
+
+  // --- Add Event Listeners for All Sliders ---
+
+  console.log('Setting up slider event listeners...');
+  console.log('Game object available:', !!window.game3D);
+  if (window.game3D) {
+    console.log('Game object properties:', {
+      player: !!window.game3D.player,
+      camera: !!window.game3D.camera,
+      renderer: !!window.game3D.renderer,
+      scene: !!window.game3D.scene,
+    });
+  }
+
+  // Physics & Movement Sliders
+  const playerHeightSlider = document.getElementById('playerHeightSlider');
+  const playerHeightValue = document.getElementById('playerHeightValue');
+  const groundLevelSlider = document.getElementById('groundLevelSlider');
+  const groundLevelValue = document.getElementById('groundLevelValue');
+  const cellBoundarySlider = document.getElementById('cellBoundarySlider');
+  const cellBoundaryValue = document.getElementById('cellBoundaryValue');
+  const baseJumpSlider = document.getElementById('baseJumpSlider');
+  const baseJumpValue = document.getElementById('baseJumpValue');
+  const maxJumpSlider = document.getElementById('maxJumpSlider');
+  const maxJumpValue = document.getElementById('maxJumpValue');
+  const gravitySlider = document.getElementById('gravitySlider');
+  const gravityValue = document.getElementById('gravityValue');
+  const chargeTimeSlider = document.getElementById('chargeTimeSlider');
+  const chargeTimeValue = document.getElementById('chargeTimeValue');
+  const speedSlider = document.getElementById('speedSlider');
+  const speedValue = document.getElementById('speedValue');
+
+  // Camera & Controls
+  const mouseSensitivitySlider = document.getElementById('mouseSensitivitySlider');
+  const mouseSensitivityValue = document.getElementById('mouseSensitivityValue');
+  const cameraHeightSlider = document.getElementById('cameraHeightSlider');
+  const cameraHeightValue = document.getElementById('cameraHeightValue');
+  const fovSlider = document.getElementById('fovSlider');
+  const fovValue = document.getElementById('fovValue');
+
+  // Enemies & Gameplay
+  const enemySpeedSlider = document.getElementById('enemySpeedSlider');
+  const enemySpeedValue = document.getElementById('enemySpeedValue');
+  const enemyRangeSlider = document.getElementById('enemyRangeSlider');
+  const enemyRangeValue = document.getElementById('enemyRangeValue');
+  const playerHealthSlider = document.getElementById('playerHealthSlider');
+  const playerHealthValue = document.getElementById('playerHealthValue');
+
+  // Visual & Audio
+  const lightIntensitySlider = document.getElementById('lightIntensitySlider');
+  const lightIntensityValue = document.getElementById('lightIntensityValue');
+  const particleCountSlider = document.getElementById('particleCountSlider');
+  const particleCountValue = document.getElementById('particleCountValue');
+  const shadowQualitySelect = document.getElementById('shadowQualitySelect');
+  const shadowQualityValue = document.getElementById('shadowQualityValue');
+
+  // Lighting controls
+  const ambientLightIntensitySlider = document.getElementById('ambientLightIntensitySlider');
+  const ambientLightIntensityValue = document.getElementById('ambientLightIntensityValue');
+  const directionalLightIntensitySlider = document.getElementById(
+    'directionalLightIntensitySlider',
+  );
+  const directionalLightIntensityValue = document.getElementById('directionalLightIntensityValue');
+  const ambientLightColorPicker = document.getElementById('ambientLightColorPicker');
+  const directionalLightColorPicker = document.getElementById('directionalLightColorPicker');
+  const backgroundColorPicker = document.getElementById('backgroundColorPicker');
+  const lightingDayPreset = document.getElementById('lightingDayPreset');
+  const lightingNightPreset = document.getElementById('lightingNightPreset');
+
+  // --- Profile Save/Load/Delete ---
+  const profileNameInput = document.getElementById('profileNameInput');
+  const saveProfileBtn = document.getElementById('saveProfileBtn');
+  const loadProfileSelect = document.getElementById('loadProfileSelect');
+  const loadProfileBtn = document.getElementById('loadProfileBtn');
+  const deleteProfileBtn = document.getElementById('deleteProfileBtn');
+  const resetGameSettingsBtn = document.getElementById('resetGameSettings');
+  const copyGameSettingsBtn = document.getElementById('copyGameSettings');
+
+  // Default settings object
+  const defaultSettings = {
+    // Physics & Movement
+    playerHeight: 1.8,
+    groundLevel: 0,
+    cellBoundary: 10,
+    baseJumpPower: 1.0,
+    maxJumpPower: 2.0,
+    gravity: 0.3,
+    chargeTime: 15,
+    movementSpeed: 0.15,
+    // Camera & Controls
+    mouseSensitivity: 0.002,
+    cameraHeight: 1.6,
+    fov: 75,
+    // Enemies & Gameplay
+    enemySpeed: 0.05,
+    enemyDetectionRange: 8,
+    playerHealth: 100,
+    // Visual & Audio
+    ambientLightIntensity: 0.6,
+    ambientLightColor: '#ffffff',
+    directionalLightIntensity: 1.2,
+    directionalLightColor: '#fff4e6',
+    backgroundColor: '#87ceeb',
+    particleCount: 100,
+    shadowQuality: 1024,
+  };
+
+  function resetToDefaults() {
+    // Apply default settings to the game
+    applySettings(defaultSettings);
+
+    // Update all slider values and display values
+    if (playerHeightSlider) playerHeightSlider.value = defaultSettings.playerHeight;
+    if (playerHeightValue) playerHeightValue.textContent = defaultSettings.playerHeight.toFixed(1);
+
+    if (groundLevelSlider) groundLevelSlider.value = defaultSettings.groundLevel;
+    if (groundLevelValue) groundLevelValue.textContent = defaultSettings.groundLevel.toFixed(1);
+
+    if (cellBoundarySlider) cellBoundarySlider.value = defaultSettings.cellBoundary;
+    if (cellBoundaryValue) cellBoundaryValue.textContent = defaultSettings.cellBoundary;
+
+    if (baseJumpSlider) baseJumpSlider.value = defaultSettings.baseJumpPower;
+    if (baseJumpValue) baseJumpValue.textContent = defaultSettings.baseJumpPower.toFixed(1);
+
+    if (maxJumpSlider) maxJumpSlider.value = defaultSettings.maxJumpPower;
+    if (maxJumpValue) maxJumpValue.textContent = defaultSettings.maxJumpPower.toFixed(1);
+
+    if (gravitySlider) gravitySlider.value = defaultSettings.gravity;
+    if (gravityValue) gravityValue.textContent = defaultSettings.gravity.toFixed(2);
+
+    if (chargeTimeSlider) chargeTimeSlider.value = defaultSettings.chargeTime;
+    if (chargeTimeValue) chargeTimeValue.textContent = defaultSettings.chargeTime;
+
+    if (speedSlider) speedSlider.value = defaultSettings.movementSpeed;
+    if (speedValue) speedValue.textContent = defaultSettings.movementSpeed.toFixed(2);
+
+    if (mouseSensitivitySlider) mouseSensitivitySlider.value = defaultSettings.mouseSensitivity;
+    if (mouseSensitivityValue)
+      mouseSensitivityValue.textContent = defaultSettings.mouseSensitivity.toFixed(3);
+
+    if (cameraHeightSlider) cameraHeightSlider.value = defaultSettings.cameraHeight;
+    if (cameraHeightValue) cameraHeightValue.textContent = defaultSettings.cameraHeight.toFixed(1);
+
+    if (fovSlider) fovSlider.value = defaultSettings.fov;
+    if (fovValue) fovValue.textContent = defaultSettings.fov;
+
+    if (enemySpeedSlider) enemySpeedSlider.value = defaultSettings.enemySpeed;
+    if (enemySpeedValue) enemySpeedValue.textContent = enemySpeedSlider.value;
+
+    if (enemyRangeSlider) enemyRangeSlider.value = defaultSettings.enemyDetectionRange;
+    if (enemyRangeValue) enemyRangeValue.textContent = enemyRangeSlider.value;
+
+    if (playerHealthSlider) playerHealthSlider.value = defaultSettings.playerHealth;
+    if (playerHealthValue) playerHealthValue.textContent = playerHealthSlider.value;
+
+    if (ambientLightIntensitySlider)
+      ambientLightIntensitySlider.value = defaultSettings.ambientLightIntensity;
+    if (ambientLightIntensityValue)
+      ambientLightIntensityValue.textContent = defaultSettings.ambientLightIntensity.toFixed(2);
+
+    if (directionalLightIntensitySlider)
+      directionalLightIntensitySlider.value = defaultSettings.directionalLightIntensity;
+    if (directionalLightIntensityValue)
+      directionalLightIntensityValue.textContent = directionalLightIntensitySlider.value;
+
+    if (ambientLightColorPicker) ambientLightColorPicker.value = defaultSettings.ambientLightColor;
+    if (directionalLightColorPicker)
+      directionalLightColorPicker.value = defaultSettings.directionalLightColor;
+    if (backgroundColorPicker) backgroundColorPicker.value = defaultSettings.backgroundColor;
+
+    if (particleCountSlider) particleCountSlider.value = defaultSettings.particleCount;
+    if (particleCountValue) particleCountValue.textContent = defaultSettings.particleCount;
+
+    if (shadowQualitySelect) shadowQualitySelect.value = defaultSettings.shadowQuality;
+    if (shadowQualityValue) shadowQualityValue.textContent = defaultSettings.shadowQuality;
+
+    console.log('Settings reset to defaults');
+  }
+
+  function copyAllSettings() {
+    const settings = getCurrentSettings();
+    const settingsText = JSON.stringify(settings, null, 2);
+
+    const outputDiv = document.getElementById('gameSettingsOutput');
+    const textarea = document.getElementById('gameSettingsText');
+
+    if (outputDiv && textarea) {
+      textarea.value = settingsText;
+      outputDiv.style.display = 'block';
+
+      // Copy to clipboard
+      textarea.select();
+      document.execCommand('copy');
+
+      // Hide after 3 seconds
+      setTimeout(() => {
+        outputDiv.style.display = 'none';
+      }, 3000);
+    }
+  }
+
+  function getCurrentSettings() {
+    return {
+      // Physics & Movement
+      playerHeight: window.game3D.player.height,
+      groundLevel: window.game3D.groundLevel,
+      cellBoundary: window.game3D.cellBoundary,
+      baseJumpPower: window.game3D.player.jumpPower,
+      maxJumpPower: window.game3D.player.maxJumpPower,
+      gravity: window.game3D.gravity,
+      chargeTime: window.game3D.player.maxJumpCharge,
+      movementSpeed: window.game3D.player.speed,
+      // Camera & Controls
+      mouseSensitivity: window.game3D.mouseSensitivity,
+      cameraHeight: window.game3D.camera.position.y,
+      fov: window.game3D.camera.fov,
+      // Enemies & Gameplay
+      enemySpeed: window.game3D.enemies[0]?.speed || 0.05,
+      enemyDetectionRange: window.game3D.enemyDetectionRange,
+      playerHealth: window.game3D.player.health,
+      // Visual & Audio
+      ambientLightIntensity: window.game3D.ambientLight.intensity,
+      ambientLightColor: window.game3D.ambientLight.color.getStyle(),
+      directionalLightIntensity: window.game3D.directionalLight.intensity,
+      directionalLightColor: window.game3D.directionalLight.color.getStyle(),
+      backgroundColor: window.game3D.renderer.getClearColor().getStyle(),
+      particleCount: window.game3D.particleCount,
+      shadowQuality: window.game3D.shadowMapSize,
+    };
+  }
+
+  function applySettings(settings) {
+    // Physics & Movement
+    if (settings.playerHeight !== undefined) {
+      window.game3D.player.height = settings.playerHeight;
+      if (playerHeightSlider) playerHeightSlider.value = settings.playerHeight;
+      if (playerHeightValue) playerHeightValue.textContent = playerHeightSlider.value;
+      console.log('Player height updated to:', window.game3D.player.height);
+    }
+    if (settings.groundLevel !== undefined) {
+      window.game3D.groundLevel = settings.groundLevel;
+      if (groundLevelSlider) groundLevelSlider.value = settings.groundLevel;
+      if (groundLevelValue) groundLevelValue.textContent = groundLevelSlider.value;
+      console.log('Ground level updated to:', window.game3D.groundLevel);
+    }
+    if (settings.cellBoundary !== undefined) {
+      window.game3D.cellBoundary = settings.cellBoundary;
+      if (cellBoundarySlider) cellBoundarySlider.value = settings.cellBoundary;
+      if (cellBoundaryValue) cellBoundaryValue.textContent = cellBoundarySlider.value;
+      console.log('Cell boundary updated to:', window.game3D.cellBoundary);
+    }
+    if (settings.baseJumpPower !== undefined) {
+      window.game3D.player.jumpPower = settings.baseJumpPower;
+      if (baseJumpSlider) baseJumpSlider.value = settings.baseJumpPower;
+      if (baseJumpValue) baseJumpValue.textContent = baseJumpSlider.value;
+      console.log('Base jump power updated to:', window.game3D.player.jumpPower);
+    }
+    if (settings.maxJumpPower !== undefined) {
+      window.game3D.player.maxJumpPower = settings.maxJumpPower;
+      if (maxJumpSlider) maxJumpSlider.value = settings.maxJumpPower;
+      if (maxJumpValue) maxJumpValue.textContent = settings.maxJumpPower.toFixed(1);
+    }
+    if (settings.gravity !== undefined) {
+      window.game3D.gravity = settings.gravity;
+      if (gravitySlider) gravitySlider.value = settings.gravity;
+      if (gravityValue) gravityValue.textContent = settings.gravity.toFixed(2);
+    }
+    if (settings.chargeTime !== undefined) {
+      window.game3D.player.maxJumpCharge = settings.chargeTime;
+      if (chargeTimeSlider) chargeTimeSlider.value = settings.chargeTime;
+      if (chargeTimeValue) chargeTimeValue.textContent = settings.chargeTime;
+    }
+    if (settings.movementSpeed !== undefined) {
+      window.game3D.player.speed = settings.movementSpeed;
+      if (speedSlider) speedSlider.value = settings.movementSpeed;
+      if (speedValue) speedValue.textContent = settings.movementSpeed.toFixed(2);
+    }
+    // Camera & Controls
+    if (settings.mouseSensitivity !== undefined) {
+      window.game3D.mouseSensitivity = settings.mouseSensitivity;
+      if (mouseSensitivitySlider) mouseSensitivitySlider.value = settings.mouseSensitivity;
+      if (mouseSensitivityValue)
+        mouseSensitivityValue.textContent = settings.mouseSensitivity.toFixed(3);
+    }
+    if (settings.cameraHeight !== undefined) {
+      window.game3D.camera.position.y = settings.cameraHeight;
+      if (cameraHeightSlider) cameraHeightSlider.value = settings.cameraHeight;
+      if (cameraHeightValue) cameraHeightValue.textContent = settings.cameraHeight.toFixed(1);
+    }
+    if (settings.fov !== undefined) {
+      window.game3D.camera.fov = settings.fov;
+      window.game3D.camera.updateProjectionMatrix();
+      if (fovSlider) fovSlider.value = settings.fov;
+      if (fovValue) fovValue.textContent = settings.fov;
+    }
+    // Enemies & Gameplay
+    if (settings.enemySpeed !== undefined) {
+      window.game3D.enemies.forEach((enemy) => {
+        enemy.speed = settings.enemySpeed;
+      });
+      if (enemySpeedSlider) enemySpeedSlider.value = settings.enemySpeed;
+      if (enemySpeedValue) enemySpeedValue.textContent = enemySpeedSlider.value;
+    }
+    if (settings.enemyDetectionRange !== undefined) {
+      window.game3D.enemyDetectionRange = settings.enemyDetectionRange;
+      if (enemyRangeSlider) enemyRangeSlider.value = settings.enemyDetectionRange;
+      if (enemyRangeValue) enemyRangeValue.textContent = settings.enemyDetectionRange;
+    }
+    if (settings.playerHealth !== undefined) {
+      window.game3D.player.health = settings.playerHealth;
+      window.game3D.player.maxHealth = settings.playerHealth;
+      if (playerHealthSlider) playerHealthSlider.value = settings.playerHealth;
+      if (playerHealthValue) playerHealthValue.textContent = playerHealthSlider.value;
+    }
+    // Visual & Audio
+    if (settings.ambientLightIntensity !== undefined) {
+      window.game3D.ambientLight.intensity = settings.ambientLightIntensity;
+      if (ambientLightIntensitySlider)
+        ambientLightIntensitySlider.value = settings.ambientLightIntensity;
+      if (ambientLightIntensityValue)
+        ambientLightIntensityValue.textContent = settings.ambientLightIntensity.toFixed(2);
+    }
+    if (settings.ambientLightColor !== undefined) {
+      window.game3D.ambientLight.color.setStyle(settings.ambientLightColor);
+      if (ambientLightColorPicker)
+        ambientLightColorPicker.value = rgbToHex(settings.ambientLightColor);
+    }
+    if (settings.directionalLightIntensity !== undefined) {
+      window.game3D.directionalLight.intensity = settings.directionalLightIntensity;
+      if (directionalLightIntensitySlider)
+        directionalLightIntensitySlider.value = settings.directionalLightIntensity;
+      if (directionalLightIntensityValue)
+        directionalLightIntensityValue.textContent = directionalLightIntensitySlider.value;
+    }
+    if (settings.directionalLightColor !== undefined) {
+      window.game3D.directionalLight.color.setStyle(settings.directionalLightColor);
+      if (directionalLightColorPicker)
+        directionalLightColorPicker.value = rgbToHex(settings.directionalLightColor);
+    }
+    if (settings.backgroundColor !== undefined) {
+      window.game3D.renderer.setClearColor(settings.backgroundColor);
+      if (backgroundColorPicker) backgroundColorPicker.value = rgbToHex(settings.backgroundColor);
+    }
+    if (settings.particleCount !== undefined) {
+      window.game3D.particleCount = settings.particleCount;
+      if (particleCountSlider) particleCountSlider.value = settings.particleCount;
+      if (particleCountValue) particleCountValue.textContent = settings.particleCount;
+      if (typeof window.game3D.updateParticleSystems === 'function')
+        window.game3D.updateParticleSystems();
+    }
+    if (settings.shadowQuality !== undefined) {
+      window.game3D.shadowMapSize = settings.shadowQuality;
+      if (shadowQualitySelect) shadowQualitySelect.value = settings.shadowQuality;
+      if (shadowQualityValue) shadowQualityValue.textContent = settings.shadowQuality;
+      if (typeof window.game3D.updateShadowMap === 'function') window.game3D.updateShadowMap();
+    }
+  }
+
+  function rgbToHex(rgb) {
+    // Accepts 'rgb(r,g,b)' or '#rrggbb' or 'rgba(r,g,b,a)' or color names
+    if (rgb.startsWith('#')) return rgb;
+    const result = rgb.match(/\d+/g);
+    if (!result) return '#ffffff';
+    return (
+      '#' +
+      ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2]))
+        .toString(16)
+        .slice(1)
+    );
+  }
+
+  function updateProfileDropdown() {
+    const profiles = JSON.parse(localStorage.getItem('gameProfiles') || '{}');
+    loadProfileSelect.innerHTML = '';
+    Object.keys(profiles).forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      loadProfileSelect.appendChild(opt);
+    });
+  }
+
+  if (saveProfileBtn)
+    saveProfileBtn.addEventListener('click', () => {
+      const name = profileNameInput.value.trim();
+      if (!name) {
+        alert('Enter a profile name.');
+        return;
+      }
+      const profiles = JSON.parse(localStorage.getItem('gameProfiles') || '{}');
+      profiles[name] = getCurrentSettings();
+      localStorage.setItem('gameProfiles', JSON.stringify(profiles));
+      updateProfileDropdown();
+      alert('Profile saved!');
+    });
+  if (loadProfileBtn)
+    loadProfileBtn.addEventListener('click', () => {
+      const name = loadProfileSelect.value;
+      if (!name) {
+        alert('Select a profile to load.');
+        return;
+      }
+      const profiles = JSON.parse(localStorage.getItem('gameProfiles') || '{}');
+      if (!profiles[name]) {
+        alert('Profile not found.');
+        return;
+      }
+      applySettings(profiles[name]);
+      alert('Profile loaded!');
+    });
+  if (deleteProfileBtn)
+    deleteProfileBtn.addEventListener('click', () => {
+      const name = loadProfileSelect.value;
+      if (!name) {
+        alert('Select a profile to delete.');
+        return;
+      }
+      const profiles = JSON.parse(localStorage.getItem('gameProfiles') || '{}');
+      if (!profiles[name]) {
+        alert('Profile not found.');
+        return;
+      }
+      delete profiles[name];
+      localStorage.setItem('gameProfiles', JSON.stringify(profiles));
+      updateProfileDropdown();
+      alert('Profile deleted!');
+    });
+  if (resetGameSettingsBtn)
+    resetGameSettingsBtn.addEventListener('click', () => {
+      resetToDefaults();
+    });
+  if (copyGameSettingsBtn)
+    copyGameSettingsBtn.addEventListener('click', () => {
+      copyAllSettings();
+    });
+  updateProfileDropdown();
+
+  function createDefaultProfilesIfNeeded() {
+    let profiles = JSON.parse(localStorage.getItem('gameProfiles') || '{}');
+    if (Object.keys(profiles).length === 0) {
+      profiles = {
+        Daytime: {
+          playerHeight: 1.8,
+          groundLevel: 0,
+          cellBoundary: 10,
+          baseJumpPower: 1.0,
+          maxJumpPower: 2.0,
+          gravity: 0.3,
+          chargeTime: 15,
+          movementSpeed: 0.15,
+          mouseSensitivity: 0.002,
+          cameraHeight: 1.6,
+          fov: 75,
+          enemySpeed: 0.05,
+          enemyDetectionRange: 8,
+          playerHealth: 100,
+          ambientLightIntensity: 1.2,
+          ambientLightColor: '#ffffff',
+          directionalLightIntensity: 1.1,
+          directionalLightColor: '#fffbe6',
+          backgroundColor: '#bfefff',
+          particleCount: 100,
+          shadowQuality: 1024,
+        },
+        Night: {
+          playerHeight: 1.8,
+          groundLevel: 0,
+          cellBoundary: 10,
+          baseJumpPower: 1.0,
+          maxJumpPower: 2.0,
+          gravity: 0.3,
+          chargeTime: 15,
+          movementSpeed: 0.15,
+          mouseSensitivity: 0.002,
+          cameraHeight: 1.6,
+          fov: 75,
+          enemySpeed: 0.05,
+          enemyDetectionRange: 8,
+          playerHealth: 100,
+          ambientLightIntensity: 0.3,
+          ambientLightColor: '#223366',
+          directionalLightIntensity: 0.2,
+          directionalLightColor: '#003366',
+          backgroundColor: '#1a1a2e',
+          particleCount: 100,
+          shadowQuality: 1024,
+        },
+      };
+      localStorage.setItem('gameProfiles', JSON.stringify(profiles));
+    }
+  }
+
+  createDefaultProfilesIfNeeded();
+  updateProfileDropdown();
+
+  // --- Add Event Listeners for All Sliders ---
+
+  // Physics & Movement Sliders
+  if (playerHeightSlider) {
+    playerHeightSlider.addEventListener('input', () => {
+      console.log('Player height slider changed:', playerHeightSlider.value);
+      if (window.game3D && window.game3D.player) {
+        window.game3D.player.height = parseFloat(playerHeightSlider.value);
+        if (playerHeightValue) playerHeightValue.textContent = playerHeightSlider.value;
+        console.log('Player height updated to:', window.game3D.player.height);
+      } else {
+        console.warn('Game or player not available for height slider');
+      }
+    });
+  } else {
+    console.warn('Player height slider not found');
+  }
+
+  if (groundLevelSlider) {
+    groundLevelSlider.addEventListener('input', () => {
+      console.log('Ground level slider changed:', groundLevelSlider.value);
+      if (window.game3D) {
+        window.game3D.groundLevel = parseFloat(groundLevelSlider.value);
+        if (groundLevelValue) groundLevelValue.textContent = groundLevelSlider.value;
+        console.log('Ground level updated to:', window.game3D.groundLevel);
+      } else {
+        console.warn('Game not available for ground level slider');
+      }
+    });
+  } else {
+    console.warn('Ground level slider not found');
+  }
+
+  if (cellBoundarySlider) {
+    cellBoundarySlider.addEventListener('input', () => {
+      console.log('Cell boundary slider changed:', cellBoundarySlider.value);
+      if (window.game3D) {
+        window.game3D.cellBoundary = parseInt(cellBoundarySlider.value);
+        window.game3D.updateCellBounds(); // Update the cell bounds
+        if (cellBoundaryValue) cellBoundaryValue.textContent = cellBoundarySlider.value;
+        console.log('Cell boundary updated to:', window.game3D.cellBoundary);
+      } else {
+        console.warn('Game not available for cell boundary slider');
+      }
+    });
+  } else {
+    console.warn('Cell boundary slider not found');
+  }
+
+  if (baseJumpSlider) {
+    baseJumpSlider.addEventListener('input', () => {
+      console.log('Base jump slider changed:', baseJumpSlider.value);
+      if (window.game3D && window.game3D.player) {
+        window.game3D.player.jumpPower = parseFloat(baseJumpSlider.value);
+        if (baseJumpValue) baseJumpValue.textContent = baseJumpSlider.value;
+        console.log('Base jump power updated to:', window.game3D.player.jumpPower);
+      } else {
+        console.warn('Game or player not available for base jump slider');
+      }
+    });
+  } else {
+    console.warn('Base jump slider not found');
+  }
+
+  if (maxJumpSlider) {
+    maxJumpSlider.addEventListener('input', () => {
+      console.log('Max jump slider changed:', maxJumpSlider.value);
+      if (window.game3D && window.game3D.player) {
+        window.game3D.player.maxJumpPower = parseFloat(maxJumpSlider.value);
+        if (maxJumpValue) maxJumpValue.textContent = maxJumpSlider.value;
+        console.log('Max jump power updated to:', window.game3D.player.maxJumpPower);
+      } else {
+        console.warn('Game or player not available for max jump slider');
+      }
+    });
+  } else {
+    console.warn('Max jump slider not found');
+  }
+
+  if (gravitySlider) {
+    gravitySlider.addEventListener('input', () => {
+      if (window.game3D) {
+        window.game3D.gravity = parseFloat(gravitySlider.value);
+        if (gravityValue) gravityValue.textContent = gravitySlider.value;
+      }
+    });
+  }
+
+  if (chargeTimeSlider) {
+    chargeTimeSlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.player) {
+        window.game3D.player.maxJumpCharge = parseInt(chargeTimeSlider.value);
+        if (chargeTimeValue) chargeTimeValue.textContent = chargeTimeSlider.value;
+      }
+    });
+  }
+
+  if (speedSlider) {
+    speedSlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.player) {
+        window.game3D.player.speed = parseFloat(speedSlider.value);
+        if (speedValue) speedValue.textContent = speedSlider.value;
+      }
+    });
+  }
+
+  // Camera & Controls Sliders
+  if (mouseSensitivitySlider) {
+    mouseSensitivitySlider.addEventListener('input', () => {
+      if (window.game3D) {
+        window.game3D.mouseSensitivity = parseFloat(mouseSensitivitySlider.value);
+        if (mouseSensitivityValue) mouseSensitivityValue.textContent = mouseSensitivitySlider.value;
+      }
+    });
+  }
+
+  if (cameraHeightSlider) {
+    cameraHeightSlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.camera) {
+        window.game3D.camera.position.y = parseFloat(cameraHeightSlider.value);
+        if (cameraHeightValue) cameraHeightValue.textContent = cameraHeightSlider.value;
+      }
+    });
+  }
+
+  if (fovSlider) {
+    fovSlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.camera) {
+        window.game3D.camera.fov = parseInt(fovSlider.value);
+        window.game3D.camera.updateProjectionMatrix();
+        if (fovValue) fovValue.textContent = fovSlider.value;
+      }
+    });
+  }
+
+  // Enemies & Gameplay Sliders
+  if (enemySpeedSlider) {
+    enemySpeedSlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.enemies) {
+        const speed = parseFloat(enemySpeedSlider.value);
+        window.game3D.enemies.forEach((enemy) => {
+          enemy.speed = speed;
+        });
+        if (enemySpeedValue) enemySpeedValue.textContent = enemySpeedSlider.value;
+      }
+    });
+  }
+
+  if (enemyRangeSlider) {
+    enemyRangeSlider.addEventListener('input', () => {
+      if (window.game3D) {
+        window.game3D.enemyDetectionRange = parseInt(enemyRangeSlider.value);
+        if (enemyRangeValue) enemyRangeValue.textContent = enemyRangeSlider.value;
+      }
+    });
+  }
+
+  if (playerHealthSlider) {
+    playerHealthSlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.player) {
+        const health = parseInt(playerHealthSlider.value);
+        window.game3D.player.health = health;
+        window.game3D.player.maxHealth = health;
+        if (playerHealthValue) playerHealthValue.textContent = playerHealthSlider.value;
+      }
+    });
+  }
+
+  // Visual & Audio Sliders
+  if (particleCountSlider) {
+    particleCountSlider.addEventListener('input', () => {
+      if (window.game3D) {
+        window.game3D.particleCount = parseInt(particleCountSlider.value);
+        if (particleCountValue) particleCountValue.textContent = particleCountSlider.value;
+      }
+    });
+  }
+
+  if (shadowQualitySelect) {
+    shadowQualitySelect.addEventListener('change', () => {
+      if (window.game3D) {
+        window.game3D.shadowMapSize = parseInt(shadowQualitySelect.value);
+        if (shadowQualityValue) shadowQualityValue.textContent = shadowQualitySelect.value;
+      }
+    });
+  }
+
+  // Lighting Controls
+  if (ambientLightIntensitySlider) {
+    ambientLightIntensitySlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.ambientLight) {
+        window.game3D.ambientLight.intensity = parseFloat(ambientLightIntensitySlider.value);
+        if (ambientLightIntensityValue)
+          ambientLightIntensityValue.textContent = ambientLightIntensitySlider.value;
+      }
+    });
+  }
+
+  if (directionalLightIntensitySlider) {
+    directionalLightIntensitySlider.addEventListener('input', () => {
+      if (window.game3D && window.game3D.directionalLight) {
+        window.game3D.directionalLight.intensity = parseFloat(
+          directionalLightIntensitySlider.value,
+        );
+        if (directionalLightIntensityValue)
+          directionalLightIntensityValue.textContent = directionalLightIntensitySlider.value;
+      }
+    });
+  }
+
+  if (ambientLightColorPicker) {
+    ambientLightColorPicker.addEventListener('input', () => {
+      if (window.game3D && window.game3D.ambientLight) {
+        window.game3D.ambientLight.color.setStyle(ambientLightColorPicker.value);
+      }
+    });
+  }
+
+  if (directionalLightColorPicker) {
+    directionalLightColorPicker.addEventListener('input', () => {
+      if (window.game3D && window.game3D.directionalLight) {
+        window.game3D.directionalLight.color.setStyle(directionalLightColorPicker.value);
+      }
+    });
+  }
+
+  if (backgroundColorPicker) {
+    backgroundColorPicker.addEventListener('input', () => {
+      if (window.game3D && window.game3D.renderer) {
+        window.game3D.renderer.setClearColor(backgroundColorPicker.value);
+      }
+    });
+  }
+
+  // Lighting Presets
+  if (lightingDayPreset) {
+    lightingDayPreset.addEventListener('click', () => {
+      if (window.game3D && window.game3D.ambientLight) {
+        window.game3D.ambientLight.intensity = 0.6;
+        window.game3D.ambientLight.color.setStyle('#ffffff');
+        if (ambientLightIntensitySlider) ambientLightIntensitySlider.value = 0.6;
+        if (ambientLightIntensityValue) ambientLightIntensityValue.textContent = '0.60';
+        if (ambientLightColorPicker) ambientLightColorPicker.value = '#ffffff';
+      }
+      if (window.game3D && window.game3D.directionalLight) {
+        window.game3D.directionalLight.intensity = 1.2;
+        window.game3D.directionalLight.color.setStyle('#fff4e6');
+        if (directionalLightIntensitySlider) directionalLightIntensitySlider.value = 1.2;
+        if (directionalLightIntensityValue) directionalLightIntensityValue.textContent = '1.20';
+        if (directionalLightColorPicker) directionalLightColorPicker.value = '#fff4e6';
+      }
+      if (window.game3D && window.game3D.renderer) {
+        window.game3D.renderer.setClearColor('#87ceeb');
+      }
+      if (backgroundColorPicker) backgroundColorPicker.value = '#87ceeb';
+    });
+  }
+
+  if (lightingNightPreset) {
+    lightingNightPreset.addEventListener('click', () => {
+      if (window.game3D && window.game3D.ambientLight) {
+        window.game3D.ambientLight.intensity = 0.2;
+        window.game3D.ambientLight.color.setStyle('#101020');
+        if (ambientLightIntensitySlider) ambientLightIntensitySlider.value = 0.2;
+        if (ambientLightIntensityValue) ambientLightIntensityValue.textContent = '0.20';
+        if (ambientLightColorPicker) ambientLightColorPicker.value = '#101020';
+      }
+      if (window.game3D && window.game3D.directionalLight) {
+        window.game3D.directionalLight.intensity = 0.3;
+        window.game3D.directionalLight.color.setStyle('#202040');
+        if (directionalLightIntensitySlider) directionalLightIntensitySlider.value = 0.3;
+        if (directionalLightIntensityValue) directionalLightIntensityValue.textContent = '0.30';
+        if (directionalLightColorPicker) directionalLightColorPicker.value = '#202040';
+      }
+      if (window.game3D && window.game3D.renderer) {
+        window.game3D.renderer.setClearColor('#000011');
+      }
+      if (backgroundColorPicker) backgroundColorPicker.value = '#000011';
+    });
+  }
+
+  // Checkpoint Controls
+  const createCheckpointBtn = document.getElementById('createCheckpointBtn');
+  const respawnCheckpointBtn = document.getElementById('respawnCheckpointBtn');
+  const clearCheckpointsBtn = document.getElementById('clearCheckpointsBtn');
+  const maxCheckpointsSlider = document.getElementById('maxCheckpointsSlider');
+  const maxCheckpointsSliderValue = document.getElementById('maxCheckpointsSliderValue');
+  const checkpointCountValue = document.getElementById('checkpointCountValue');
+  const maxCheckpointsValue = document.getElementById('maxCheckpointsValue');
+
+  if (createCheckpointBtn) {
+    createCheckpointBtn.addEventListener('click', () => {
+      if (window.game3D) {
+        window.game3D.createCheckpoint();
+        updateCheckpointDisplay();
+      }
+    });
+  }
+
+  if (respawnCheckpointBtn) {
+    respawnCheckpointBtn.addEventListener('click', () => {
+      if (window.game3D) {
+        window.game3D.respawnAtCheckpoint();
+      }
+    });
+  }
+
+  if (clearCheckpointsBtn) {
+    clearCheckpointsBtn.addEventListener('click', () => {
+      if (window.game3D) {
+        window.game3D.clearAllCheckpoints();
+        updateCheckpointDisplay();
+      }
+    });
+  }
+
+  if (maxCheckpointsSlider) {
+    maxCheckpointsSlider.addEventListener('input', () => {
+      if (window.game3D) {
+        window.game3D.maxCheckpoints = parseInt(maxCheckpointsSlider.value);
+        if (maxCheckpointsSliderValue)
+          maxCheckpointsSliderValue.textContent = maxCheckpointsSlider.value;
+        if (maxCheckpointsValue) maxCheckpointsValue.textContent = maxCheckpointsSlider.value;
+      }
+    });
+  }
+
+  function updateCheckpointDisplay() {
+    if (window.game3D) {
+      if (checkpointCountValue) checkpointCountValue.textContent = window.game3D.checkpointCount;
+      if (maxCheckpointsValue) maxCheckpointsValue.textContent = window.game3D.maxCheckpoints;
+    }
+  }
+
+  // Update checkpoint display initially
+  updateCheckpointDisplay();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, initializing game...');
+  window.game3D = new Game3D();
+  console.log('Game initialized, setting up controls...');
+  setupGameControlSliders();
+  console.log('Controls setup complete. Game object available:', !!window.game3D);
 });
