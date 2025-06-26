@@ -1151,6 +1151,23 @@ class Game3D {
     this.showCheckpointMessage('All checkpoints cleared!', 'info');
     console.log('All checkpoints cleared');
   }
+
+  updateParticleSystems() {
+    // Update particle systems based on new particle count
+    console.log('Updating particle systems with count:', this.particleCount);
+    // This method can be expanded to actually update particle systems
+    // For now, it just logs the change
+  }
+
+  updateShadowMap() {
+    // Update shadow map quality
+    console.log('Updating shadow map quality to:', this.shadowMapSize);
+    if (this.renderer) {
+      this.renderer.shadowMap.mapSize = new THREE.Vector2(this.shadowMapSize, this.shadowMapSize);
+      // Force shadow map regeneration
+      this.renderer.shadowMap.needsUpdate = true;
+    }
+  }
 }
 
 // Start the game when the page loads
@@ -1843,168 +1860,272 @@ function setupGameControlSliders() {
 
   if (gravitySlider) {
     gravitySlider.addEventListener('input', () => {
+      console.log('Gravity slider changed:', gravitySlider.value);
       if (window.game3D) {
         window.game3D.gravity = parseFloat(gravitySlider.value);
         if (gravityValue) gravityValue.textContent = gravitySlider.value;
+        console.log('Gravity updated to:', window.game3D.gravity);
+      } else {
+        console.warn('Game not available for gravity slider');
       }
     });
+  } else {
+    console.warn('Gravity slider not found');
   }
 
   if (chargeTimeSlider) {
     chargeTimeSlider.addEventListener('input', () => {
+      console.log('Charge time slider changed:', chargeTimeSlider.value);
       if (window.game3D && window.game3D.player) {
         window.game3D.player.maxJumpCharge = parseInt(chargeTimeSlider.value);
         if (chargeTimeValue) chargeTimeValue.textContent = chargeTimeSlider.value;
+        console.log('Charge time updated to:', window.game3D.player.maxJumpCharge);
+      } else {
+        console.warn('Game or player not available for charge time slider');
       }
     });
+  } else {
+    console.warn('Charge time slider not found');
   }
 
   if (speedSlider) {
     speedSlider.addEventListener('input', () => {
+      console.log('Speed slider changed:', speedSlider.value);
       if (window.game3D && window.game3D.player) {
         window.game3D.player.speed = parseFloat(speedSlider.value);
         if (speedValue) speedValue.textContent = speedSlider.value;
+        console.log('Speed updated to:', window.game3D.player.speed);
+      } else {
+        console.warn('Game or player not available for speed slider');
       }
     });
+  } else {
+    console.warn('Speed slider not found');
   }
 
   // Camera & Controls Sliders
   if (mouseSensitivitySlider) {
     mouseSensitivitySlider.addEventListener('input', () => {
+      console.log('Mouse sensitivity slider changed:', mouseSensitivitySlider.value);
       if (window.game3D) {
         window.game3D.mouseSensitivity = parseFloat(mouseSensitivitySlider.value);
         if (mouseSensitivityValue) mouseSensitivityValue.textContent = mouseSensitivitySlider.value;
+        console.log('Mouse sensitivity updated to:', window.game3D.mouseSensitivity);
+      } else {
+        console.warn('Game not available for mouse sensitivity slider');
       }
     });
+  } else {
+    console.warn('Mouse sensitivity slider not found');
   }
 
   if (cameraHeightSlider) {
     cameraHeightSlider.addEventListener('input', () => {
+      console.log('Camera height slider changed:', cameraHeightSlider.value);
       if (window.game3D && window.game3D.camera) {
         window.game3D.camera.position.y = parseFloat(cameraHeightSlider.value);
         if (cameraHeightValue) cameraHeightValue.textContent = cameraHeightSlider.value;
+        console.log('Camera height updated to:', window.game3D.camera.position.y);
+      } else {
+        console.warn('Game or camera not available for camera height slider');
       }
     });
+  } else {
+    console.warn('Camera height slider not found');
   }
 
   if (fovSlider) {
     fovSlider.addEventListener('input', () => {
+      console.log('FOV slider changed:', fovSlider.value);
       if (window.game3D && window.game3D.camera) {
         window.game3D.camera.fov = parseInt(fovSlider.value);
         window.game3D.camera.updateProjectionMatrix();
         if (fovValue) fovValue.textContent = fovSlider.value;
+        console.log('FOV updated to:', window.game3D.camera.fov);
+      } else {
+        console.warn('Game or camera not available for FOV slider');
       }
     });
+  } else {
+    console.warn('FOV slider not found');
   }
 
   // Enemies & Gameplay Sliders
   if (enemySpeedSlider) {
     enemySpeedSlider.addEventListener('input', () => {
+      console.log('Enemy speed slider changed:', enemySpeedSlider.value);
       if (window.game3D && window.game3D.enemies) {
         const speed = parseFloat(enemySpeedSlider.value);
         window.game3D.enemies.forEach((enemy) => {
           enemy.speed = speed;
         });
         if (enemySpeedValue) enemySpeedValue.textContent = enemySpeedSlider.value;
+        console.log('Enemy speed updated to:', speed);
+      } else {
+        console.warn('Game or enemies not available for enemy speed slider');
       }
     });
+  } else {
+    console.warn('Enemy speed slider not found');
   }
 
   if (enemyRangeSlider) {
     enemyRangeSlider.addEventListener('input', () => {
+      console.log('Enemy range slider changed:', enemyRangeSlider.value);
       if (window.game3D) {
         window.game3D.enemyDetectionRange = parseInt(enemyRangeSlider.value);
         if (enemyRangeValue) enemyRangeValue.textContent = enemyRangeSlider.value;
+        console.log('Enemy detection range updated to:', window.game3D.enemyDetectionRange);
+      } else {
+        console.warn('Game not available for enemy range slider');
       }
     });
+  } else {
+    console.warn('Enemy range slider not found');
   }
 
   if (playerHealthSlider) {
     playerHealthSlider.addEventListener('input', () => {
+      console.log('Player health slider changed:', playerHealthSlider.value);
       if (window.game3D && window.game3D.player) {
         const health = parseInt(playerHealthSlider.value);
         window.game3D.player.health = health;
         window.game3D.player.maxHealth = health;
         if (playerHealthValue) playerHealthValue.textContent = playerHealthSlider.value;
+        console.log('Player health updated to:', window.game3D.player.health);
+      } else {
+        console.warn('Game or player not available for health slider');
       }
     });
+  } else {
+    console.warn('Player health slider not found');
   }
 
   // Visual & Audio Sliders
   if (particleCountSlider) {
     particleCountSlider.addEventListener('input', () => {
+      console.log('Particle count slider changed:', particleCountSlider.value);
       if (window.game3D) {
         window.game3D.particleCount = parseInt(particleCountSlider.value);
         if (particleCountValue) particleCountValue.textContent = particleCountSlider.value;
+        console.log('Particle count updated to:', window.game3D.particleCount);
+      } else {
+        console.warn('Game not available for particle count slider');
       }
     });
+  } else {
+    console.warn('Particle count slider not found');
   }
 
   if (shadowQualitySelect) {
     shadowQualitySelect.addEventListener('change', () => {
+      console.log('Shadow quality changed:', shadowQualitySelect.value);
       if (window.game3D) {
         window.game3D.shadowMapSize = parseInt(shadowQualitySelect.value);
         if (shadowQualityValue) shadowQualityValue.textContent = shadowQualitySelect.value;
+        console.log('Shadow quality updated to:', window.game3D.shadowMapSize);
+      } else {
+        console.warn('Game not available for shadow quality select');
       }
     });
+  } else {
+    console.warn('Shadow quality select not found');
   }
 
   // Lighting Controls
   if (ambientLightIntensitySlider) {
     ambientLightIntensitySlider.addEventListener('input', () => {
+      console.log('Ambient light intensity slider changed:', ambientLightIntensitySlider.value);
       if (window.game3D && window.game3D.ambientLight) {
         window.game3D.ambientLight.intensity = parseFloat(ambientLightIntensitySlider.value);
         if (ambientLightIntensityValue)
           ambientLightIntensityValue.textContent = ambientLightIntensitySlider.value;
+        console.log('Ambient light intensity updated to:', window.game3D.ambientLight.intensity);
+      } else {
+        console.warn('Game or ambient light not available for intensity slider');
       }
     });
+  } else {
+    console.warn('Ambient light intensity slider not found');
   }
 
   if (directionalLightIntensitySlider) {
     directionalLightIntensitySlider.addEventListener('input', () => {
+      console.log(
+        'Directional light intensity slider changed:',
+        directionalLightIntensitySlider.value,
+      );
       if (window.game3D && window.game3D.directionalLight) {
         window.game3D.directionalLight.intensity = parseFloat(
           directionalLightIntensitySlider.value,
         );
         if (directionalLightIntensityValue)
           directionalLightIntensityValue.textContent = directionalLightIntensitySlider.value;
+        console.log(
+          'Directional light intensity updated to:',
+          window.game3D.directionalLight.intensity,
+        );
+      } else {
+        console.warn('Game or directional light not available for intensity slider');
       }
     });
+  } else {
+    console.warn('Directional light intensity slider not found');
   }
 
   if (ambientLightColorPicker) {
     ambientLightColorPicker.addEventListener('input', () => {
+      console.log('Ambient light color changed:', ambientLightColorPicker.value);
       if (window.game3D && window.game3D.ambientLight) {
         window.game3D.ambientLight.color.setStyle(ambientLightColorPicker.value);
+        console.log('Ambient light color updated to:', ambientLightColorPicker.value);
+      } else {
+        console.warn('Game or ambient light not available for color picker');
       }
     });
+  } else {
+    console.warn('Ambient light color picker not found');
   }
 
   if (directionalLightColorPicker) {
     directionalLightColorPicker.addEventListener('input', () => {
+      console.log('Directional light color changed:', directionalLightColorPicker.value);
       if (window.game3D && window.game3D.directionalLight) {
         window.game3D.directionalLight.color.setStyle(directionalLightColorPicker.value);
+        console.log('Directional light color updated to:', directionalLightColorPicker.value);
+      } else {
+        console.warn('Game or directional light not available for color picker');
       }
     });
+  } else {
+    console.warn('Directional light color picker not found');
   }
 
   if (backgroundColorPicker) {
     backgroundColorPicker.addEventListener('input', () => {
+      console.log('Background color changed:', backgroundColorPicker.value);
       if (window.game3D && window.game3D.renderer) {
         window.game3D.renderer.setClearColor(backgroundColorPicker.value);
+        console.log('Background color updated to:', backgroundColorPicker.value);
+      } else {
+        console.warn('Game or renderer not available for background color picker');
       }
     });
+  } else {
+    console.warn('Background color picker not found');
   }
 
   // Lighting Presets
   if (lightingDayPreset) {
     lightingDayPreset.addEventListener('click', () => {
+      console.log('Day lighting preset applied');
       if (window.game3D && window.game3D.ambientLight) {
         window.game3D.ambientLight.intensity = 0.6;
         window.game3D.ambientLight.color.setStyle('#ffffff');
         if (ambientLightIntensitySlider) ambientLightIntensitySlider.value = 0.6;
         if (ambientLightIntensityValue) ambientLightIntensityValue.textContent = '0.60';
         if (ambientLightColorPicker) ambientLightColorPicker.value = '#ffffff';
+        console.log('Ambient light updated for day preset');
       }
       if (window.game3D && window.game3D.directionalLight) {
         window.game3D.directionalLight.intensity = 1.2;
@@ -2012,22 +2133,28 @@ function setupGameControlSliders() {
         if (directionalLightIntensitySlider) directionalLightIntensitySlider.value = 1.2;
         if (directionalLightIntensityValue) directionalLightIntensityValue.textContent = '1.20';
         if (directionalLightColorPicker) directionalLightColorPicker.value = '#fff4e6';
+        console.log('Directional light updated for day preset');
       }
       if (window.game3D && window.game3D.renderer) {
         window.game3D.renderer.setClearColor('#87ceeb');
+        if (backgroundColorPicker) backgroundColorPicker.value = '#87ceeb';
+        console.log('Background color updated for day preset');
       }
-      if (backgroundColorPicker) backgroundColorPicker.value = '#87ceeb';
     });
+  } else {
+    console.warn('Day lighting preset button not found');
   }
 
   if (lightingNightPreset) {
     lightingNightPreset.addEventListener('click', () => {
+      console.log('Night lighting preset applied');
       if (window.game3D && window.game3D.ambientLight) {
         window.game3D.ambientLight.intensity = 0.2;
         window.game3D.ambientLight.color.setStyle('#101020');
         if (ambientLightIntensitySlider) ambientLightIntensitySlider.value = 0.2;
         if (ambientLightIntensityValue) ambientLightIntensityValue.textContent = '0.20';
         if (ambientLightColorPicker) ambientLightColorPicker.value = '#101020';
+        console.log('Ambient light updated for night preset');
       }
       if (window.game3D && window.game3D.directionalLight) {
         window.game3D.directionalLight.intensity = 0.3;
@@ -2035,12 +2162,16 @@ function setupGameControlSliders() {
         if (directionalLightIntensitySlider) directionalLightIntensitySlider.value = 0.3;
         if (directionalLightIntensityValue) directionalLightIntensityValue.textContent = '0.30';
         if (directionalLightColorPicker) directionalLightColorPicker.value = '#202040';
+        console.log('Directional light updated for night preset');
       }
       if (window.game3D && window.game3D.renderer) {
         window.game3D.renderer.setClearColor('#000011');
+        if (backgroundColorPicker) backgroundColorPicker.value = '#000011';
+        console.log('Background color updated for night preset');
       }
-      if (backgroundColorPicker) backgroundColorPicker.value = '#000011';
     });
+  } else {
+    console.warn('Night lighting preset button not found');
   }
 
   // Checkpoint Controls
