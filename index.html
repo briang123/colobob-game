@@ -99,6 +99,138 @@
       #fullscreenButton:hover {
         background: rgba(0, 255, 255, 0.2);
       }
+
+      /* Jump Debugger Styles */
+      #jumpDebugger {
+        position: fixed;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        width: 300px;
+        background: rgba(0, 0, 0, 0.9);
+        border: 2px solid #00ffff;
+        border-radius: 10px;
+        color: #00ffff;
+        font-family: 'Courier New', monospace;
+        z-index: 1000;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      }
+
+      #debuggerHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        border-bottom: 1px solid #00ffff;
+        background: rgba(0, 255, 255, 0.1);
+      }
+
+      #debuggerHeader h3 {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      #closeDebugger {
+        background: none;
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+      }
+
+      #closeDebugger:hover {
+        background: rgba(255, 0, 0, 0.3);
+        border-color: #ff0000;
+        color: #ff0000;
+      }
+
+      #debuggerContent {
+        padding: 15px;
+      }
+
+      .setting-group {
+        margin-bottom: 15px;
+      }
+
+      .setting-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .setting-group input[type='range'] {
+        width: 100%;
+        height: 6px;
+        background: #2a2a3e;
+        border-radius: 3px;
+        outline: none;
+        -webkit-appearance: none;
+      }
+
+      .setting-group input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        background: #00ffff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 5px #00ffff;
+      }
+
+      .setting-group input[type='range']::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        background: #00ffff;
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 5px #00ffff;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .button-group button {
+        flex: 1;
+        padding: 8px 12px;
+        background: rgba(0, 255, 255, 0.2);
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+      }
+
+      .button-group button:hover {
+        background: rgba(0, 255, 255, 0.4);
+      }
+
+      #settingsOutput {
+        margin-top: 15px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 5px;
+      }
+
+      #settingsText {
+        width: 100%;
+        background: #1a1a2e;
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        font-family: 'Courier New', monospace;
+        font-size: 10px;
+        padding: 5px;
+        border-radius: 3px;
+      }
     </style>
   </head>
   <body>
@@ -108,6 +240,8 @@
       <div>Health: <span id="health">100</span></div>
       <div>Gravity: <span id="gravity">ON</span></div>
       <div>Light Mode: <span id="lightMode">LIGHT</span></div>
+      <div>Physics: <span id="physicsMode">CELL</span></div>
+      <div>Jump Charge: <span id="jumpCharge">0%</span></div>
       <div>Position: <span id="position">0, 0, 0</span></div>
       <div>FPS: <span id="fps">60</span></div>
     </div>
@@ -115,7 +249,11 @@
       <strong>First-Person Controls:</strong><br />
       WASD - Move (relative to where you're looking)<br />
       MOUSE - Look around<br />
-      SPACE - Jump<br />
+      <strong>Cell Physics:</strong><br />
+      SPACE - Jump (hold to charge)<br />
+      <strong>Space Physics:</strong><br />
+      SPACE - Float upward<br />
+      SHIFT - Float downward<br />
       E - Interact<br />
       G - Toggle Gravity (when found)<br />
       L - Toggle Light/Dark Mode<br />
@@ -125,6 +263,43 @@
       <em>Click to lock mouse for full first-person control</em>
     </div>
     <button id="fullscreenButton">Fullscreen</button>
+
+    <!-- Jump Debugger Window -->
+    <div id="jumpDebugger">
+      <div id="debuggerHeader">
+        <h3>Jump Settings Debugger</h3>
+        <button id="closeDebugger">×</button>
+      </div>
+      <div id="debuggerContent">
+        <div class="setting-group">
+          <label>Base Jump Power: <span id="baseJumpValue">1.0</span></label>
+          <input type="range" id="baseJumpSlider" min="0.1" max="3.0" step="0.1" value="1.0" />
+        </div>
+        <div class="setting-group">
+          <label>Max Jump Power: <span id="maxJumpValue">2.0</span></label>
+          <input type="range" id="maxJumpSlider" min="0.1" max="5.0" step="0.1" value="2.0" />
+        </div>
+        <div class="setting-group">
+          <label>Gravity: <span id="gravityValue">0.3</span></label>
+          <input type="range" id="gravitySlider" min="0.05" max="0.8" step="0.05" value="0.3" />
+        </div>
+        <div class="setting-group">
+          <label>Charge Time (frames): <span id="chargeTimeValue">15</span></label>
+          <input type="range" id="chargeTimeSlider" min="5" max="30" step="1" value="15" />
+        </div>
+        <div class="setting-group">
+          <label>Movement Speed: <span id="speedValue">0.15</span></label>
+          <input type="range" id="speedSlider" min="0.05" max="0.5" step="0.01" value="0.15" />
+        </div>
+        <div class="button-group">
+          <button id="copySettings">Copy Settings</button>
+          <button id="resetSettings">Reset to Default</button>
+        </div>
+        <div id="settingsOutput" style="display: none">
+          <textarea id="settingsText" readonly rows="4" cols="40"></textarea>
+        </div>
+      </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="js/game.js"></script>

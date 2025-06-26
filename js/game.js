@@ -47,12 +47,22 @@ class Game3D {
     }
 
     // Game state
-    this.gravity = 0.3;
+    this.gravity = 0.3; // Matches original 2D game gravity
     this.gravityEnabled = true;
     this.gameTime = 0;
     this.fps = 60;
     this.lastTime = 0;
     this.lightMode = 'light'; // 'light' or 'dark'
+
+    // Cell boundary system
+    this.cellBounds = {
+      minX: -10,
+      maxX: 10,
+      minZ: -10,
+      maxZ: 10,
+      height: 8,
+    };
+    this.inCell = true; // Track if player is inside the cell
 
     // Mouse controls
     this.mouseX = 0;
@@ -70,7 +80,10 @@ class Game3D {
       vy: 0,
       vz: 0,
       speed: 0.15,
-      jumpPower: 0.8,
+      jumpPower: 1.0, // High base jump power
+      maxJumpPower: 2.0, // Very high max jump power
+      jumpCharge: 0, // How long space has been held
+      maxJumpCharge: 15, // Reduced charge time for faster response
       onGround: false,
       health: 100,
       maxHealth: 100,
@@ -92,6 +105,9 @@ class Game3D {
 
     // Initialize 3D world
     this.init3DWorld();
+
+    // Initialize jump debugger
+    this.initJumpDebugger();
 
     // Start game loop
     this.gameLoop();
@@ -187,7 +203,7 @@ class Game3D {
       // Handle special keys
       if (e.key === ' ') {
         e.preventDefault();
-        this.playerJump();
+        // Don't jump immediately - let the update loop handle charging
       }
       if (e.key === 'g' || e.key === 'G') {
         this.toggleGravity();
@@ -208,13 +224,19 @@ class Game3D {
 
     document.addEventListener('keyup', (e) => {
       this.keys[e.key.toLowerCase()] = false;
+
+      // Execute jump when space is released
+      if (e.key === ' ') {
+        e.preventDefault();
+        this.executeJump();
+      }
     });
 
     // Mouse movement
     document.addEventListener('mousemove', (e) => {
       if (this.mouseLocked) {
-        this.mouseX -= e.movementX * this.mouseSensitivity;
-        this.mouseY -= e.movementY * this.mouseSensitivity;
+        this.mouseX -= e.movementX * this.mouseSensitivity; // Negative for correct direction
+        this.mouseY -= e.movementY * this.mouseSensitivity; // Negative for correct vertical direction
 
         // Limit vertical rotation
         this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
@@ -565,9 +587,28 @@ class Game3D {
 
     // Update UI
     this.updateUI();
+
+    // Check cell boundary
+    this.checkCellBoundary();
   }
 
   updatePlayer() {
+    // Handle jump charging (Minecraft-style) - only works inside cell
+    if (
+      this.keys[' '] &&
+      this.player.onGround &&
+      this.player.jumpCharge < this.player.maxJumpCharge &&
+      this.inCell
+    ) {
+      this.player.jumpCharge++;
+      console.log('Charging jump:', this.player.jumpCharge, '/', this.player.maxJumpCharge);
+    } else if (!this.keys[' '] || !this.player.onGround || !this.inCell) {
+      if (this.player.jumpCharge > 0) {
+        console.log('Reset jump charge');
+      }
+      this.player.jumpCharge = 0;
+    }
+
     // First-person movement relative to where player is looking
     let moveX = 0;
     let moveZ = 0;
@@ -600,15 +641,33 @@ class Game3D {
       moveZ /= length;
     }
 
-    // Apply movement
-    this.player.vx = moveX * this.player.speed;
-    this.player.vz = moveZ * this.player.speed;
+    // Apply movement with different physics based on location
+    if (this.inCell) {
+      // Physics-based motion inside cell
+      this.player.vx = moveX * this.player.speed;
+      this.player.vz = moveZ * this.player.speed;
 
-    // Apply gravity
-    if (this.gravityEnabled) {
-      this.player.vy -= this.gravity;
+      // Apply gravity and normal physics
+      if (this.gravityEnabled) {
+        this.player.vy -= this.gravity;
+      } else {
+        this.player.vy -= this.gravity * 0.3;
+      }
     } else {
-      this.player.vy -= this.gravity * 0.3;
+      // Space-based motion outside cell (no gravity)
+      this.player.vx = moveX * this.player.speed * 1.5; // Faster movement in space
+      this.player.vz = moveZ * this.player.speed * 1.5;
+
+      // No gravity in space
+      this.player.vy *= 0.98; // Slight air resistance
+
+      // Add vertical movement in space with SPACE key
+      if (this.keys[' ']) {
+        this.player.vy += 0.02; // Float upward
+      }
+      if (this.keys['shift']) {
+        this.player.vy -= 0.02; // Float downward
+      }
     }
 
     // Update position
@@ -620,29 +679,36 @@ class Game3D {
     this.player.x = Math.max(-19, Math.min(19, this.player.x));
     this.player.z = Math.max(-19, Math.min(19, this.player.z));
 
-    // Platform collision
-    this.player.onGround = false;
-    for (let platform of this.platforms) {
-      if (this.check3DCollision(this.player, platform)) {
-        // Check if player is above the platform
-        if (this.player.y > platform.y + platform.height / 2) {
-          // Check if player is close enough to the platform surface
-          const distanceToSurface =
-            this.player.y - (platform.y + platform.height / 2 + this.player.height / 2);
-          if (distanceToSurface < 0.1 && this.player.vy <= 0) {
-            this.player.y = platform.y + platform.height / 2 + this.player.height / 2;
-            this.player.vy = 0;
-            this.player.onGround = true;
+    // Ground detection - only applies inside cell
+    if (this.inCell) {
+      this.player.onGround = false;
+
+      // Check floor collision first
+      if (this.player.y <= this.player.height / 2 + 0.1) {
+        this.player.y = this.player.height / 2;
+        this.player.vy = 0;
+        this.player.onGround = true;
+      }
+
+      // Check platform collisions
+      for (let platform of this.platforms) {
+        if (this.check3DCollision(this.player, platform)) {
+          // Check if player is above the platform
+          if (this.player.y > platform.y + platform.height / 2) {
+            // Check if player is close enough to the platform surface
+            const distanceToSurface =
+              this.player.y - (platform.y + platform.height / 2 + this.player.height / 2);
+            if (distanceToSurface < 0.2 && this.player.vy <= 0) {
+              this.player.y = platform.y + platform.height / 2 + this.player.height / 2;
+              this.player.vy = 0;
+              this.player.onGround = true;
+            }
           }
         }
       }
-    }
-
-    // Floor collision
-    if (this.player.y <= this.player.height / 2 + 0.1) {
-      this.player.y = this.player.height / 2;
-      this.player.vy = 0;
-      this.player.onGround = true;
+    } else {
+      // In space, no ground detection
+      this.player.onGround = false;
     }
 
     // Update player mesh position
@@ -734,12 +800,23 @@ class Game3D {
     return distance < radius1 + radius2;
   }
 
-  playerJump() {
-    console.log('Jump attempted. onGround:', this.player.onGround, 'vy:', this.player.vy);
+  executeJump() {
+    console.log(
+      'Jump executed. onGround:',
+      this.player.onGround,
+      'charge:',
+      this.player.jumpCharge,
+    );
     if (this.player.onGround) {
-      this.player.vy = this.player.jumpPower;
+      // Calculate jump power based on charge (Minecraft-style)
+      const chargeRatio = this.player.jumpCharge / this.player.maxJumpCharge;
+      const jumpPower =
+        this.player.jumpPower + (this.player.maxJumpPower - this.player.jumpPower) * chargeRatio;
+
+      this.player.vy = jumpPower;
       this.player.onGround = false;
-      console.log('Jump executed! New vy:', this.player.vy);
+      this.player.jumpCharge = 0; // Reset charge
+      console.log('Jump power:', jumpPower);
       this.createParticles(this.player.x, this.player.y, this.player.z, 0x00ffff);
     } else {
       console.log('Cannot jump - not on ground');
@@ -816,14 +893,23 @@ class Game3D {
   updateUI() {
     document.getElementById('health').textContent = this.player.health;
     document.getElementById('gravity').textContent = this.gravityEnabled ? 'ON' : 'OFF';
+    document.getElementById('lightMode').textContent = this.lightMode.toUpperCase();
+    document.getElementById('physicsMode').textContent = this.inCell ? 'CELL' : 'SPACE';
     document.getElementById('position').textContent =
       `${Math.round(this.player.x)}, ${Math.round(this.player.y)}, ${Math.round(this.player.z)}`;
     document.getElementById('fps').textContent = Math.round(this.fps);
 
-    // Update light mode display if it exists
-    const lightModeElement = document.getElementById('lightMode');
-    if (lightModeElement) {
-      lightModeElement.textContent = this.lightMode.toUpperCase();
+    // Update jump charge display - only show when in cell
+    const jumpChargeElement = document.getElementById('jumpCharge');
+    if (jumpChargeElement) {
+      if (this.inCell) {
+        const chargePercent = Math.round(
+          (this.player.jumpCharge / this.player.maxJumpCharge) * 100,
+        );
+        jumpChargeElement.textContent = `${chargePercent}%`;
+      } else {
+        jumpChargeElement.textContent = 'N/A';
+      }
     }
   }
 
@@ -852,6 +938,150 @@ class Game3D {
     this.createParticles(this.player.x, this.player.y, this.player.z, particleColor);
 
     console.log(`Switched to ${this.lightMode} mode`);
+  }
+
+  checkCellBoundary() {
+    const wasInCell = this.inCell;
+
+    // Check if player is within cell boundaries (entire cell area)
+    this.inCell =
+      this.player.x >= this.cellBounds.minX &&
+      this.player.x <= this.cellBounds.maxX &&
+      this.player.z >= this.cellBounds.minZ &&
+      this.player.z <= this.cellBounds.maxZ;
+    // Removed height check to ensure entire cell volume has physics
+
+    // If player just left the cell, create transition effect
+    if (wasInCell && !this.inCell) {
+      console.log('Player escaped the cell! Space physics activated.');
+      this.createParticles(this.player.x, this.player.y, this.player.z, 0x00ffff);
+    }
+
+    // If player just entered the cell, create transition effect
+    if (!wasInCell && this.inCell) {
+      console.log('Player entered the cell. Physics-based motion activated.');
+      this.createParticles(this.player.x, this.player.y, this.player.z, 0xff6600);
+    }
+  }
+
+  initJumpDebugger() {
+    // Get debugger elements
+    const debuggerWindow = document.getElementById('jumpDebugger');
+    const closeBtn = document.getElementById('closeDebugger');
+    const copyBtn = document.getElementById('copySettings');
+    const resetBtn = document.getElementById('resetSettings');
+    const settingsOutput = document.getElementById('settingsOutput');
+    const settingsText = document.getElementById('settingsText');
+
+    // Sliders
+    const baseJumpSlider = document.getElementById('baseJumpSlider');
+    const maxJumpSlider = document.getElementById('maxJumpSlider');
+    const gravitySlider = document.getElementById('gravitySlider');
+    const chargeTimeSlider = document.getElementById('chargeTimeSlider');
+    const speedSlider = document.getElementById('speedSlider');
+
+    // Value displays
+    const baseJumpValue = document.getElementById('baseJumpValue');
+    const maxJumpValue = document.getElementById('maxJumpValue');
+    const gravityValue = document.getElementById('gravityValue');
+    const chargeTimeValue = document.getElementById('chargeTimeValue');
+    const speedValue = document.getElementById('speedValue');
+
+    // Close debugger
+    closeBtn.addEventListener('click', () => {
+      debuggerWindow.style.display = 'none';
+    });
+
+    // Base jump power slider
+    baseJumpSlider.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      this.player.jumpPower = value;
+      baseJumpValue.textContent = value.toFixed(1);
+    });
+
+    // Max jump power slider
+    maxJumpSlider.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      this.player.maxJumpPower = value;
+      maxJumpValue.textContent = value.toFixed(1);
+    });
+
+    // Gravity slider
+    gravitySlider.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      this.gravity = value;
+      gravityValue.textContent = value.toFixed(2);
+    });
+
+    // Charge time slider
+    chargeTimeSlider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      this.player.maxJumpCharge = value;
+      chargeTimeValue.textContent = value;
+    });
+
+    // Movement speed slider
+    speedSlider.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      this.player.speed = value;
+      speedValue.textContent = value.toFixed(2);
+    });
+
+    // Copy settings
+    copyBtn.addEventListener('click', () => {
+      const settings = {
+        baseJumpPower: this.player.jumpPower,
+        maxJumpPower: this.player.maxJumpPower,
+        gravity: this.gravity,
+        chargeTime: this.player.maxJumpCharge,
+        movementSpeed: this.player.speed,
+      };
+
+      const settingsString = JSON.stringify(settings, null, 2);
+      settingsText.value = settingsString;
+      settingsOutput.style.display = 'block';
+
+      // Copy to clipboard
+      settingsText.select();
+      document.execCommand('copy');
+
+      // Show feedback
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy Settings';
+      }, 2000);
+    });
+
+    // Reset settings
+    resetBtn.addEventListener('click', () => {
+      // Reset to default values
+      this.player.jumpPower = 1.0;
+      this.player.maxJumpPower = 2.0;
+      this.gravity = 0.3;
+      this.player.maxJumpCharge = 15;
+      this.player.speed = 0.15;
+
+      // Update sliders
+      baseJumpSlider.value = this.player.jumpPower;
+      maxJumpSlider.value = this.player.maxJumpPower;
+      gravitySlider.value = this.gravity;
+      chargeTimeSlider.value = this.player.maxJumpCharge;
+      speedSlider.value = this.player.speed;
+
+      // Update displays
+      baseJumpValue.textContent = this.player.jumpPower.toFixed(1);
+      maxJumpValue.textContent = this.player.maxJumpPower.toFixed(1);
+      gravityValue.textContent = this.gravity.toFixed(2);
+      chargeTimeValue.textContent = this.player.maxJumpCharge;
+      speedValue.textContent = this.player.speed.toFixed(2);
+    });
+
+    // Toggle debugger with J key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'j' || e.key === 'J') {
+        debuggerWindow.style.display = debuggerWindow.style.display === 'none' ? 'block' : 'none';
+      }
+    });
   }
 }
 

@@ -164,3 +164,61 @@ are you able to make this a 3D game?
 - **Perspective Camera**: Realistic 3D perspective with depth
 - **Lighting System**: Multiple light types for atmospheric sci-fi environment
 - **Mouse Lock**: Immersive 3D control with pointer lock API
+
+## Game Overview
+
+A 3D first-person sci-fi prison escape game built with Three.js. Players navigate through a futuristic space prison environment with physics-based movement, jumping mechanics, enemies, and collectibles.
+
+## Core Features
+
+- **3D First-Person Camera**: Mouse look with locked cursor for immersive experience
+- **Physics-Based Movement**: WASD movement relative to camera direction with gravity
+- **Advanced Jumping**: Minecraft-style variable jump height with charging mechanism
+- **Dynamic Environment**: Cell-based physics (gravity inside, space physics outside)
+- **Enemy AI**: Patrolling enemies that chase the player
+- **Collectibles**: Glowing spheres with particle effects
+- **Lighting System**: Toggle between daylight and atmospheric neon dark mode
+- **Fullscreen Support**: F key toggle and button
+- **Jump Debugger Window**: Real-time adjustment of jump settings with copy functionality
+
+## Technical Implementation
+
+- **Three.js**: 3D graphics and rendering
+- **Physics Engine**: Custom gravity and collision detection
+- **Input System**: Keyboard and mouse controls with proper event handling
+- **UI System**: Overlay HUD with health, position, FPS, and debug information
+- **Debug Tools**: Floating debugger window for jump settings adjustment
+
+## Jump System Details
+
+The jumping system features:
+
+- **Base Jump Power**: Minimum jump strength (default: 1.0)
+- **Max Jump Power**: Maximum jump strength when fully charged (default: 2.0)
+- **Gravity**: Strength of downward force (default: 0.3)
+- **Charge Time**: Frames to reach maximum charge (default: 15)
+- **Movement Speed**: Player movement velocity (default: 0.15)
+
+## Debugger Window Features
+
+- **Real-time Control**: Adjust all jump parameters with sliders
+- **Visual Feedback**: Live value displays for all settings
+- **Copy Functionality**: Export current settings as JSON
+- **Reset Option**: Return to default values
+- **Toggle Access**: J key to show/hide debugger
+- **Professional UI**: Sci-fi themed styling with cyan accents
+
+## Controls
+
+- **WASD**: Movement
+- **Mouse**: Look around
+- **Space**: Jump (hold to charge)
+- **F**: Toggle fullscreen
+- **J**: Toggle jump debugger window
+
+## Development Notes
+
+- All jump settings are configurable through the debugger window
+- Settings can be exported and shared for permanent implementation
+- The debugger provides immediate feedback for testing different configurations
+- The system supports both cell-based physics and space physics modes

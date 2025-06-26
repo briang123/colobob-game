@@ -8,11 +8,13 @@ You are a human prisoner trapped in a futuristic 3D space prison complex. You mu
 
 - **WASD** - Move your character forward, backward, left, right
 - **MOUSE** - Look around and control camera view
-- **SPACE** - Jump (works when on ground)
+- **SPACE** - Jump (hold to charge for higher jumps)
 - **G** - Toggle gravity on/off (only works after finding the gravity switch)
 - **E** - Interact with objects (placeholder for future features)
 - **ESC** - Toggle mouse lock (click to lock mouse to game)
 - **CLICK** - Lock mouse to game for full 3D control
+- **F** - Toggle fullscreen
+- **J** - Toggle jump debugger window
 
 ## ⚙️ Game Mechanics
 
@@ -88,6 +90,8 @@ You are a human prisoner trapped in a futuristic 3D space prison complex. You mu
 - ✅ Real-time UI updates with 3D position tracking
 - ✅ Shadow mapping and atmospheric lighting
 - ✅ Mouse lock for immersive 3D control
+- ✅ Fullscreen support
+- ✅ Jump debugger window
 
 ## 🚀 Future Features (Planned)
 
@@ -119,3 +123,29 @@ You are a human prisoner trapped in a futuristic 3D space prison complex. You mu
 - **Anti-aliasing**: Smooth edges and high-quality rendering
 - **Perspective Camera**: Realistic 3D perspective with depth
 - **Lighting System**: Multiple light types for atmospheric sci-fi environment
+
+## Jump Debugger Window
+
+Press **J** to toggle the jump debugger window. This floating panel allows you to:
+
+- **Base Jump Power**: Adjust the minimum jump strength (0.1 - 3.0)
+- **Max Jump Power**: Adjust the maximum jump strength when fully charged (0.1 - 5.0)
+- **Gravity**: Control how strong gravity is (0.05 - 0.8)
+- **Charge Time**: Set how many frames it takes to reach maximum charge (5 - 30)
+- **Movement Speed**: Adjust how fast you move (0.05 - 0.5)
+
+### Using the Debugger
+
+1. Press **J** to open the debugger window
+2. Adjust sliders in real-time to test different jump behaviors
+3. Click **Copy Settings** to copy the current settings to your clipboard
+4. Paste the settings in chat to have them permanently applied to the game
+5. Click **Reset to Default** to return to original settings
+6. Click the **×** button or press **J** again to close the window
+
+## Tips
+
+- Use the jump debugger to find the perfect jump settings for your playstyle
+- Experiment with different gravity and jump power combinations
+- The debugger settings are applied immediately, so you can test changes in real-time
+- Once you find settings you like, copy them and share with the developer to make them permanent
