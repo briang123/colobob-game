@@ -100,69 +100,156 @@
         background: rgba(0, 255, 255, 0.2);
       }
 
-      /* Jump Debugger Styles */
-      #jumpDebugger {
-        position: fixed;
-        top: 50%;
-        right: 20px;
-        transform: translateY(-50%);
-        width: 300px;
-        background: rgba(0, 0, 0, 0.9);
-        border: 2px solid #00ffff;
-        border-radius: 10px;
-        color: #00ffff;
-        font-family: 'Courier New', monospace;
-        z-index: 1000;
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-      }
+      /* Top Right Gear Icon Button */
+      /* (Removed floating cog button) */
 
-      #debuggerHeader {
+      /* Game Controls Side Panel */
+      #gameControlsPanel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 400px;
+        height: 100vh;
+        background: rgba(10, 10, 20, 0.98);
+        border-left: 2px solid #00ffff;
+        border-radius: 0;
+        box-shadow: -4px 0 32px #00ffff33;
+        z-index: 2500;
+        display: flex;
+        flex-direction: column;
+        transform: translateX(110%);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          transform 0.45s cubic-bezier(0.77, 0, 0.18, 1),
+          opacity 0.3s;
+      }
+      #gameControlsPanel.open {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+      #gameControlsHeader {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 15px;
-        border-bottom: 1px solid #00ffff;
-        background: rgba(0, 255, 255, 0.1);
+        padding: 18px 24px 10px 24px;
+        border-bottom: 1px solid #00ffff44;
+        background: transparent;
+        min-height: 40px;
       }
-
-      #debuggerHeader h3 {
+      #gameControlsHeader h3 {
         margin: 0;
-        font-size: 14px;
-      }
-
-      #closeDebugger {
-        background: none;
-        border: 1px solid #00ffff;
+        font-size: 20px;
         color: #00ffff;
-        width: 25px;
-        height: 25px;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+      }
+      #toggleGameControls {
+        background: none;
+        border: none;
+        color: #00ffff;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         cursor: pointer;
-        font-size: 16px;
+        font-size: 24px;
         line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+      #toggleGameControls:hover {
+        background: rgba(0, 255, 255, 0.08);
+        color: #fff;
+      }
+      #gameControlsContent {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px 24px 24px 24px;
+        scrollbar-width: thin;
+        scrollbar-color: #00ffff #181828;
+      }
+      #gameControlsContent::-webkit-scrollbar {
+        width: 8px;
+      }
+      #gameControlsContent::-webkit-scrollbar-thumb {
+        background: #00ffff55;
+        border-radius: 4px;
+      }
+      #gameControlsContent::-webkit-scrollbar-track {
+        background: #181828;
       }
 
-      #closeDebugger:hover {
-        background: rgba(255, 0, 0, 0.3);
-        border-color: #ff0000;
-        color: #ff0000;
+      /* Accordion Styles */
+      .accordion-section {
+        background: rgba(0, 255, 255, 0.03);
+        border: 1.5px solid #00ffff33;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 12px #00ffff11;
+        overflow: hidden;
+        transition: box-shadow 0.2s;
+      }
+      .accordion-section.expanded {
+        box-shadow: 0 4px 24px #00ffff33;
+      }
+      .accordion-header {
+        cursor: pointer;
+        padding: 14px 12px 14px 8px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #00ffff;
+        font-family: 'Courier New', monospace;
+        background: rgba(0, 255, 255, 0.07);
+        border-bottom: 1px solid #00ffff22;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .accordion-header::before {
+        content: '\25BC';
+        font-size: 13px;
+        display: inline-block;
+        transition: transform 0.3s;
+        margin-right: 6px;
+      }
+      .accordion-section:not(.expanded) .accordion-header::before {
+        transform: rotate(-90deg);
+      }
+      .accordion-body {
+        max-height: 2000px;
+        overflow: hidden;
+        transition:
+          max-height 0.45s cubic-bezier(0.77, 0, 0.18, 1),
+          padding 0.3s;
+        padding: 12px 8px 8px 16px;
+        background: transparent;
+      }
+      .accordion-section:not(.expanded) .accordion-body {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
       }
 
-      #debuggerContent {
-        padding: 15px;
-      }
-
+      /* Settings Controls */
       .setting-group {
-        margin-bottom: 15px;
+        margin-bottom: 16px;
       }
-
       .setting-group label {
         display: block;
         margin-bottom: 5px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: bold;
+        color: #00ffff;
+        font-family: 'Courier New', monospace;
       }
-
       .setting-group input[type='range'] {
         width: 100%;
         height: 6px;
@@ -171,7 +258,6 @@
         outline: none;
         -webkit-appearance: none;
       }
-
       .setting-group input[type='range']::-webkit-slider-thumb {
         -webkit-appearance: none;
         width: 16px;
@@ -181,7 +267,6 @@
         cursor: pointer;
         box-shadow: 0 0 5px #00ffff;
       }
-
       .setting-group input[type='range']::-moz-range-thumb {
         width: 16px;
         height: 16px;
@@ -191,13 +276,25 @@
         border: none;
         box-shadow: 0 0 5px #00ffff;
       }
-
+      .setting-group select {
+        width: 100%;
+        background: #1a1a2e;
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        padding: 5px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+      }
+      .setting-group select:focus {
+        outline: none;
+        box-shadow: 0 0 5px #00ffff;
+      }
       .button-group {
         display: flex;
         gap: 10px;
         margin-top: 20px;
       }
-
       .button-group button {
         flex: 1;
         padding: 8px 12px;
@@ -207,29 +304,90 @@
         border-radius: 5px;
         cursor: pointer;
         font-family: 'Courier New', monospace;
-        font-size: 11px;
+        font-size: 13px;
+        transition: background 0.2s;
       }
-
       .button-group button:hover {
         background: rgba(0, 255, 255, 0.4);
       }
-
-      #settingsOutput {
+      #gameSettingsOutput {
         margin-top: 15px;
         padding: 10px;
         background: rgba(0, 0, 0, 0.5);
         border-radius: 5px;
       }
-
-      #settingsText {
+      #gameSettingsText {
         width: 100%;
         background: #1a1a2e;
         border: 1px solid #00ffff;
         color: #00ffff;
         font-family: 'Courier New', monospace;
-        font-size: 10px;
+        font-size: 11px;
         padding: 5px;
         border-radius: 3px;
+      }
+      .header-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      #fullscreenToggle {
+        background: none;
+        border: none;
+        color: #00ffff;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+      #fullscreenToggle:hover {
+        background: rgba(0, 255, 255, 0.08);
+        color: #fff;
+      }
+      #fullscreenButton {
+        display: none !important;
+      }
+
+      #floatingControls {
+        position: fixed;
+        top: 18px;
+        right: 32px;
+        z-index: 3000;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      #fullscreenToggle,
+      #toggleGameControls {
+        background: none;
+        border: none;
+        color: #00ffff;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+      #fullscreenToggle:hover,
+      #toggleGameControls:hover {
+        background: rgba(0, 255, 255, 0.08);
+        color: #fff;
+      }
+      #fullscreenButton {
+        display: none !important;
       }
     </style>
   </head>
@@ -264,39 +422,165 @@
     </div>
     <button id="fullscreenButton">Fullscreen</button>
 
-    <!-- Jump Debugger Window -->
-    <div id="jumpDebugger">
-      <div id="debuggerHeader">
-        <h3>Jump Settings Debugger</h3>
-        <button id="closeDebugger">×</button>
+    <!-- Always-visible floating controls -->
+    <div id="floatingControls">
+      <button id="fullscreenToggle" title="Toggle Fullscreen">⛶</button>
+      <button id="toggleGameControls" title="Open/Close Controls">&#9881;</button>
+    </div>
+
+    <!-- Game Controls Side Panel -->
+    <div id="gameControlsPanel">
+      <div id="gameControlsHeader">
+        <h3>Game Controls</h3>
       </div>
-      <div id="debuggerContent">
-        <div class="setting-group">
-          <label>Base Jump Power: <span id="baseJumpValue">1.0</span></label>
-          <input type="range" id="baseJumpSlider" min="0.1" max="3.0" step="0.1" value="1.0" />
+      <div id="gameControlsContent">
+        <div class="accordion-section expanded" id="physicsAccordion">
+          <div class="accordion-header">Physics & Movement</div>
+          <div class="accordion-body">
+            <div class="setting-group">
+              <label>Player Height: <span id="playerHeightValue">1.8</span></label>
+              <input
+                type="range"
+                id="playerHeightSlider"
+                min="1.0"
+                max="3.0"
+                step="0.1"
+                value="1.8"
+              />
+            </div>
+            <div class="setting-group">
+              <label>Ground Level: <span id="groundLevelValue">0</span></label>
+              <input type="range" id="groundLevelSlider" min="-2" max="2" step="0.1" value="0" />
+            </div>
+            <div class="setting-group">
+              <label>Cell Boundary: <span id="cellBoundaryValue">10</span></label>
+              <input type="range" id="cellBoundarySlider" min="5" max="20" step="1" value="10" />
+            </div>
+            <div class="setting-group">
+              <label>Base Jump Power: <span id="baseJumpValue">1.0</span></label>
+              <input type="range" id="baseJumpSlider" min="0.1" max="3.0" step="0.1" value="1.0" />
+            </div>
+            <div class="setting-group">
+              <label>Max Jump Power: <span id="maxJumpValue">2.0</span></label>
+              <input type="range" id="maxJumpSlider" min="0.1" max="5.0" step="0.1" value="2.0" />
+            </div>
+            <div class="setting-group">
+              <label>Gravity: <span id="gravityValue">0.3</span></label>
+              <input type="range" id="gravitySlider" min="0.05" max="0.8" step="0.05" value="0.3" />
+            </div>
+            <div class="setting-group">
+              <label>Charge Time (frames): <span id="chargeTimeValue">15</span></label>
+              <input type="range" id="chargeTimeSlider" min="5" max="30" step="1" value="15" />
+            </div>
+            <div class="setting-group">
+              <label>Movement Speed: <span id="speedValue">0.15</span></label>
+              <input type="range" id="speedSlider" min="0.05" max="0.5" step="0.01" value="0.15" />
+            </div>
+          </div>
         </div>
-        <div class="setting-group">
-          <label>Max Jump Power: <span id="maxJumpValue">2.0</span></label>
-          <input type="range" id="maxJumpSlider" min="0.1" max="5.0" step="0.1" value="2.0" />
+        <div class="accordion-section expanded" id="cameraAccordion">
+          <div class="accordion-header">Camera & Controls</div>
+          <div class="accordion-body">
+            <div class="setting-group">
+              <label>Mouse Sensitivity: <span id="mouseSensitivityValue">0.002</span></label>
+              <input
+                type="range"
+                id="mouseSensitivitySlider"
+                min="0.001"
+                max="0.01"
+                step="0.001"
+                value="0.002"
+              />
+            </div>
+            <div class="setting-group">
+              <label>Camera Height: <span id="cameraHeightValue">1.6</span></label>
+              <input
+                type="range"
+                id="cameraHeightSlider"
+                min="1.0"
+                max="2.5"
+                step="0.1"
+                value="1.6"
+              />
+            </div>
+            <div class="setting-group">
+              <label>FOV: <span id="fovValue">75</span></label>
+              <input type="range" id="fovSlider" min="60" max="120" step="5" value="75" />
+            </div>
+          </div>
         </div>
-        <div class="setting-group">
-          <label>Gravity: <span id="gravityValue">0.3</span></label>
-          <input type="range" id="gravitySlider" min="0.05" max="0.8" step="0.05" value="0.3" />
+        <div class="accordion-section expanded" id="enemiesAccordion">
+          <div class="accordion-header">Enemies & Gameplay</div>
+          <div class="accordion-body">
+            <div class="setting-group">
+              <label>Enemy Speed: <span id="enemySpeedValue">0.05</span></label>
+              <input
+                type="range"
+                id="enemySpeedSlider"
+                min="0.01"
+                max="0.15"
+                step="0.01"
+                value="0.05"
+              />
+            </div>
+            <div class="setting-group">
+              <label>Enemy Detection Range: <span id="enemyRangeValue">8</span></label>
+              <input type="range" id="enemyRangeSlider" min="3" max="15" step="1" value="8" />
+            </div>
+            <div class="setting-group">
+              <label>Player Health: <span id="playerHealthValue">100</span></label>
+              <input
+                type="range"
+                id="playerHealthSlider"
+                min="50"
+                max="200"
+                step="10"
+                value="100"
+              />
+            </div>
+          </div>
         </div>
-        <div class="setting-group">
-          <label>Charge Time (frames): <span id="chargeTimeValue">15</span></label>
-          <input type="range" id="chargeTimeSlider" min="5" max="30" step="1" value="15" />
-        </div>
-        <div class="setting-group">
-          <label>Movement Speed: <span id="speedValue">0.15</span></label>
-          <input type="range" id="speedSlider" min="0.05" max="0.5" step="0.01" value="0.15" />
+        <div class="accordion-section expanded" id="visualAccordion">
+          <div class="accordion-header">Visual & Audio</div>
+          <div class="accordion-body">
+            <div class="setting-group">
+              <label>Light Intensity: <span id="lightIntensityValue">1.0</span></label>
+              <input
+                type="range"
+                id="lightIntensitySlider"
+                min="0.1"
+                max="2.0"
+                step="0.1"
+                value="1.0"
+              />
+            </div>
+            <div class="setting-group">
+              <label>Particle Count: <span id="particleCountValue">100</span></label>
+              <input
+                type="range"
+                id="particleCountSlider"
+                min="20"
+                max="200"
+                step="10"
+                value="100"
+              />
+            </div>
+            <div class="setting-group">
+              <label>Shadow Quality: <span id="shadowQualityValue">1024</span></label>
+              <select id="shadowQualitySelect">
+                <option value="512">Low (512)</option>
+                <option value="1024" selected>Medium (1024)</option>
+                <option value="2048">High (2048)</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="button-group">
-          <button id="copySettings">Copy Settings</button>
-          <button id="resetSettings">Reset to Default</button>
+          <button id="copyGameSettings">Copy All Settings</button>
+          <button id="resetGameSettings">Reset to Default</button>
         </div>
-        <div id="settingsOutput" style="display: none">
-          <textarea id="settingsText" readonly rows="4" cols="40"></textarea>
+        <div id="gameSettingsOutput" style="display: none">
+          <textarea id="gameSettingsText" readonly rows="6" cols="50"></textarea>
         </div>
       </div>
     </div>

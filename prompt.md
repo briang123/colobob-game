@@ -180,6 +180,7 @@ A 3D first-person sci-fi prison escape game built with Three.js. Players navigat
 - **Lighting System**: Toggle between daylight and atmospheric neon dark mode
 - **Fullscreen Support**: F key toggle and button
 - **Jump Debugger Window**: Real-time adjustment of jump settings with copy functionality
+- **Game Settings Panel**: Comprehensive settings panel with physics, camera, enemies, and visual controls
 
 ## Technical Implementation
 
@@ -188,6 +189,7 @@ A 3D first-person sci-fi prison escape game built with Three.js. Players navigat
 - **Input System**: Keyboard and mouse controls with proper event handling
 - **UI System**: Overlay HUD with health, position, FPS, and debug information
 - **Debug Tools**: Floating debugger window for jump settings adjustment
+- **Settings System**: Full-screen settings panel with real-time parameter control
 
 ## Jump System Details
 
@@ -208,6 +210,23 @@ The jumping system features:
 - **Toggle Access**: J key to show/hide debugger
 - **Professional UI**: Sci-fi themed styling with cyan accents
 
+## Game Settings Panel Features
+
+- **Comprehensive Controls**: Physics, camera, enemies, and visual settings
+- **Real-time Adjustment**: All parameters update immediately
+- **Organized Sections**: Grouped settings for easy navigation
+- **Copy All Settings**: Export complete game configuration
+- **Reset Functionality**: Return all settings to defaults
+- **Multiple Access Methods**: S key or settings button
+- **Professional Overlay**: Full-screen modal with sci-fi styling
+
+## Settings Categories
+
+- **Physics & Movement**: Player height, ground level, cell boundary
+- **Camera & Controls**: Mouse sensitivity, camera height, FOV
+- **Enemies & Gameplay**: Enemy speed, detection range, player health
+- **Visual & Audio**: Light intensity, particle count, shadow quality
+
 ## Controls
 
 - **WASD**: Movement
@@ -215,6 +234,7 @@ The jumping system features:
 - **Space**: Jump (hold to charge)
 - **F**: Toggle fullscreen
 - **J**: Toggle jump debugger window
+- **S**: Toggle game settings panel
 
 ## Development Notes
 

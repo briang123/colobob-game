@@ -15,6 +15,7 @@ You are a human prisoner trapped in a futuristic 3D space prison complex. You mu
 - **CLICK** - Lock mouse to game for full 3D control
 - **F** - Toggle fullscreen
 - **J** - Toggle jump debugger window
+- **S**: Toggle game settings panel
 
 ## ⚙️ Game Mechanics
 
@@ -143,9 +144,49 @@ Press **J** to toggle the jump debugger window. This floating panel allows you t
 5. Click **Reset to Default** to return to original settings
 6. Click the **×** button or press **J** again to close the window
 
+## Game Settings Panel
+
+Press **S** or click the ⚙️ button in the jump debugger to open the comprehensive game settings panel. This full-screen overlay includes:
+
+### Physics & Movement
+
+- **Player Height**: Adjust player collision height (1.0 - 3.0)
+- **Ground Level**: Set the ground level position (-2.0 - 2.0)
+- **Cell Boundary**: Control the cell boundary size (5 - 20)
+
+### Camera & Controls
+
+- **Mouse Sensitivity**: Adjust mouse look sensitivity (0.001 - 0.01)
+- **Camera Height**: Set camera position height (1.0 - 2.5)
+- **FOV**: Control field of view (60 - 120 degrees)
+
+### Enemies & Gameplay
+
+- **Enemy Speed**: Adjust enemy movement speed (0.01 - 0.15)
+- **Enemy Detection Range**: Set enemy detection distance (3 - 15)
+- **Player Health**: Adjust player health (50 - 200)
+
+### Visual & Audio
+
+- **Light Intensity**: Control lighting brightness (0.1 - 2.0)
+- **Particle Count**: Adjust particle effects (20 - 200)
+- **Shadow Quality**: Set shadow map resolution (Low/Medium/High)
+
+### Using the Settings Panels
+
+1. **Jump Debugger**: Press **J** to open jump-specific controls
+2. **Game Settings**: Press **S** or click ⚙️ for comprehensive settings
+3. **Real-time Adjustment**: All sliders update the game immediately
+4. **Copy Settings**: Click "Copy Settings" to export current values as JSON
+5. **Reset to Default**: Return to original settings
+6. **Close**: Click × button, press the same key again, or click outside (settings panel)
+
 ## Tips
 
 - Use the jump debugger to find the perfect jump settings for your playstyle
 - Experiment with different gravity and jump power combinations
 - The debugger settings are applied immediately, so you can test changes in real-time
 - Once you find settings you like, copy them and share with the developer to make them permanent
+- The game settings panel provides fine-tune control over all aspects of the game
+- Adjust enemy speed and detection range to change difficulty
+- Modify visual settings to optimize performance on your device

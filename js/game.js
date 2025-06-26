@@ -47,7 +47,13 @@ class Game3D {
     }
 
     // Game state
-    this.gravity = 0.3; // Matches original 2D game gravity
+    this.gravity = 0.3;
+    this.groundLevel = 0;
+    this.cellBoundary = 10;
+    this.enemyDetectionRange = 8;
+    this.particleCount = 100;
+    this.shadowMapSize = 1024;
+    this.mouseSensitivity = 0.002;
     this.gravityEnabled = true;
     this.gameTime = 0;
     this.fps = 60;
@@ -68,7 +74,6 @@ class Game3D {
     this.mouseX = 0;
     this.mouseY = 0;
     this.mouseLocked = false;
-    this.mouseSensitivity = 0.002;
 
     // Player
     this.player = {
@@ -105,9 +110,6 @@ class Game3D {
 
     // Initialize 3D world
     this.init3DWorld();
-
-    // Initialize jump debugger
-    this.initJumpDebugger();
 
     // Start game loop
     this.gameLoop();
@@ -963,126 +965,6 @@ class Game3D {
       this.createParticles(this.player.x, this.player.y, this.player.z, 0xff6600);
     }
   }
-
-  initJumpDebugger() {
-    // Get debugger elements
-    const debuggerWindow = document.getElementById('jumpDebugger');
-    const closeBtn = document.getElementById('closeDebugger');
-    const copyBtn = document.getElementById('copySettings');
-    const resetBtn = document.getElementById('resetSettings');
-    const settingsOutput = document.getElementById('settingsOutput');
-    const settingsText = document.getElementById('settingsText');
-
-    // Sliders
-    const baseJumpSlider = document.getElementById('baseJumpSlider');
-    const maxJumpSlider = document.getElementById('maxJumpSlider');
-    const gravitySlider = document.getElementById('gravitySlider');
-    const chargeTimeSlider = document.getElementById('chargeTimeSlider');
-    const speedSlider = document.getElementById('speedSlider');
-
-    // Value displays
-    const baseJumpValue = document.getElementById('baseJumpValue');
-    const maxJumpValue = document.getElementById('maxJumpValue');
-    const gravityValue = document.getElementById('gravityValue');
-    const chargeTimeValue = document.getElementById('chargeTimeValue');
-    const speedValue = document.getElementById('speedValue');
-
-    // Close debugger
-    closeBtn.addEventListener('click', () => {
-      debuggerWindow.style.display = 'none';
-    });
-
-    // Base jump power slider
-    baseJumpSlider.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      this.player.jumpPower = value;
-      baseJumpValue.textContent = value.toFixed(1);
-    });
-
-    // Max jump power slider
-    maxJumpSlider.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      this.player.maxJumpPower = value;
-      maxJumpValue.textContent = value.toFixed(1);
-    });
-
-    // Gravity slider
-    gravitySlider.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      this.gravity = value;
-      gravityValue.textContent = value.toFixed(2);
-    });
-
-    // Charge time slider
-    chargeTimeSlider.addEventListener('input', (e) => {
-      const value = parseInt(e.target.value);
-      this.player.maxJumpCharge = value;
-      chargeTimeValue.textContent = value;
-    });
-
-    // Movement speed slider
-    speedSlider.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      this.player.speed = value;
-      speedValue.textContent = value.toFixed(2);
-    });
-
-    // Copy settings
-    copyBtn.addEventListener('click', () => {
-      const settings = {
-        baseJumpPower: this.player.jumpPower,
-        maxJumpPower: this.player.maxJumpPower,
-        gravity: this.gravity,
-        chargeTime: this.player.maxJumpCharge,
-        movementSpeed: this.player.speed,
-      };
-
-      const settingsString = JSON.stringify(settings, null, 2);
-      settingsText.value = settingsString;
-      settingsOutput.style.display = 'block';
-
-      // Copy to clipboard
-      settingsText.select();
-      document.execCommand('copy');
-
-      // Show feedback
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => {
-        copyBtn.textContent = 'Copy Settings';
-      }, 2000);
-    });
-
-    // Reset settings
-    resetBtn.addEventListener('click', () => {
-      // Reset to default values
-      this.player.jumpPower = 1.0;
-      this.player.maxJumpPower = 2.0;
-      this.gravity = 0.3;
-      this.player.maxJumpCharge = 15;
-      this.player.speed = 0.15;
-
-      // Update sliders
-      baseJumpSlider.value = this.player.jumpPower;
-      maxJumpSlider.value = this.player.maxJumpPower;
-      gravitySlider.value = this.gravity;
-      chargeTimeSlider.value = this.player.maxJumpCharge;
-      speedSlider.value = this.player.speed;
-
-      // Update displays
-      baseJumpValue.textContent = this.player.jumpPower.toFixed(1);
-      maxJumpValue.textContent = this.player.maxJumpPower.toFixed(1);
-      gravityValue.textContent = this.gravity.toFixed(2);
-      chargeTimeValue.textContent = this.player.maxJumpCharge;
-      speedValue.textContent = this.player.speed.toFixed(2);
-    });
-
-    // Toggle debugger with J key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'j' || e.key === 'J') {
-        debuggerWindow.style.display = debuggerWindow.style.display === 'none' ? 'block' : 'none';
-      }
-    });
-  }
 }
 
 // Start the game when the page loads
@@ -1121,4 +1003,56 @@ window.addEventListener('load', () => {
       document.body.appendChild(errorDiv);
     }
   }, 100);
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Side panel open/close
+  const panel = document.getElementById('gameControlsPanel');
+  const toggleBtn = document.getElementById('toggleGameControls');
+  const fullscreenBtn = document.getElementById('fullscreenToggle');
+
+  // Start closed, show cog
+  let open = false;
+  function updateToggleIcon() {
+    toggleBtn.innerHTML = open ? '&times;' : '&#9881;'; // × or ⚙️
+    toggleBtn.setAttribute('aria-label', open ? 'Close Game Controls' : 'Open Game Controls');
+  }
+  updateToggleIcon();
+
+  toggleBtn.addEventListener('click', () => {
+    open = !open;
+    if (open) {
+      panel.classList.add('open');
+    } else {
+      panel.classList.remove('open');
+    }
+    updateToggleIcon();
+  });
+
+  // Fullscreen logic
+  fullscreenBtn.addEventListener('click', () => {
+    const doc = document.documentElement;
+    if (!document.fullscreenElement) {
+      if (doc.requestFullscreen) doc.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+    }
+  });
+
+  // Accordion logic
+  document.querySelectorAll('.accordion-header').forEach((header) => {
+    header.addEventListener('click', () => {
+      const section = header.parentElement;
+      section.classList.toggle('expanded');
+    });
+  });
+
+  // ESC key closes panel
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && open) {
+      open = false;
+      panel.classList.remove('open');
+      updateToggleIcon();
+    }
+  });
 });
